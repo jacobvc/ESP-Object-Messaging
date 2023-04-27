@@ -16,7 +16,8 @@
 //#include "board.h"
 
 const int WIFI_CONNECTED_EVENT = BIT0;
-static httpd_data *server;
+
+httpd_data *server;
 
 /*
  *                   _                    _    
@@ -118,42 +119,7 @@ esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
  *     | | | || |_ | |_ | |_) |
  *     |_| |_| \__| \__|| .__/ 
  *                      |_|    
-extern "C" {
-  extern const char *_binary_index_html_start, 
-    *_binary_index_html_end,
-    *_binary_favicon_ico_start, 
-    *_binary_favicon_ico_end;
-}
  */
-/** Respond to http request for '/'
- */
-esp_err_t WebsocketHost::http_root_handler(httpd_req_t *req)
-{
-    extern const unsigned char index_start[] asm("_binary_index_html_start");
-    extern const unsigned char index_end[]   asm("_binary_index_html_end");
-    const size_t index_size = (index_end - index_start);
-    printf("index.html (%d bytes) from %p to %p\n", index_size, index_start, index_end);
-//    printf("index.html (%d bytes) from %p to %p\n", _binary_index_html_end - _binary_index_html_start, _binary_index_html_start, _binary_index_html_end);
-   // httpd_resp_send(req, (const char *)index_start, index_size);
-/*    const size_t index_size = _binary_index_html_end - _binary_index_html_start;
-    printf("index.html (%d bytes) from %p to %p\n", index_size, _binary_index_html_start, _binary_index_html_end);
-    httpd_resp_send(req, _binary_index_html_start, index_size);
-*/    return ESP_OK;
-}
-
-
-esp_err_t WebsocketHost::http_favicon_handler(httpd_req_t *req)
-{
-    extern const unsigned char favicon_start[] asm("_binary_favicon_ico_start");
-    extern const unsigned char favicon_end[]   asm("_binary_favicon_ico_end");
-    const size_t favicon_size = (favicon_end - favicon_start);
-    printf("favicon.ico.html (%d bytes) from %p to %p\n", favicon_size, favicon_end);
- //   httpd_resp_send(req, (const char *)favicon_start, favicon_size);
-//    const size_t favicon_size = _binary_favicon_ico_end - _binary_favicon_ico_start;
-//    httpd_resp_send(req, _binary_favicon_ico_start, favicon_size);
-    return ESP_OK;
-}
-
 //
 // Server operation
 //
@@ -167,9 +133,9 @@ httpd_handle_t WebsocketHost::start_webserver(void)
     if (httpd_start(&server, &config) == ESP_OK) {
         // Registering the ws handler
         ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &ws);
-        httpd_register_uri_handler(server, &root);
-        httpd_register_uri_handler(server, &favicon);
+        for (std::list<httpd_uri_t>::iterator it = uris.begin(); it != uris.end(); ++it){
+          httpd_register_uri_handler(server, &(*it));
+        }
         return server;
     }
 
@@ -207,7 +173,7 @@ void WebsocketHost::wifi_event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGI(host->TAG, "Disconnected. Connecting to the AP again...");
         if (server) {
             ESP_LOGI(host->TAG, "Stopping webserver");
-            stop_webserver();
+            host->stop_webserver();
        }
         esp_wifi_connect();
         break;
@@ -300,30 +266,25 @@ WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin)
     }
   }
 
+  bool WebsocketHost::Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), bool ws)
+  {
+    httpd_uri_t uri;
+    memset(&uri, 0, sizeof(uri));
+    uri.uri        = path;
+    uri.method     = HTTP_GET;
+    uri.handler    = fn;
+    uri.user_ctx   = this;
+    uri.is_websocket = ws;
+    uris.push_back(uri);
+
+    return true;
+  }
+
   bool WebsocketHost::start()
   {
     bool configured = false;
     // Init websocket handler
-    memset(&ws, 0, sizeof(ws));
-    ws.uri        = "/ws";
-    ws.method     = HTTP_GET;
-    ws.handler    = ws_message_handler;
-    ws.user_ctx   = this;
-    ws.is_websocket = true;
-
-    memset(&root, 0, sizeof(root));
-    root.uri        = "/";
-    root.method     = HTTP_GET;
-    root.handler    = http_root_handler;
-    root.user_ctx   = this;
-    root.is_websocket = false;
-
-    memset(&favicon, 0, sizeof(favicon));
-    favicon.uri        = "/favicon.ico";
-    favicon.method     = HTTP_GET;
-    favicon.handler    = http_favicon_handler;
-    favicon.user_ctx   = this;
-    favicon.is_websocket = false;
+    Add("/ws", ws_message_handler, true);
 
     TaskHandle_t blink_taskHandle;
 
