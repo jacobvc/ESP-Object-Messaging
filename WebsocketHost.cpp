@@ -17,7 +17,7 @@
 
 const int WIFI_CONNECTED_EVENT = BIT0;
 
-httpd_data *server;
+httpd_handle_t server;
 
 /*
  *                   _                    _    
@@ -125,7 +125,6 @@ esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
 //
 httpd_handle_t WebsocketHost::start_webserver(void)
 {
-    httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Start the httpd server
