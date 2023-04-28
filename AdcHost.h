@@ -130,6 +130,8 @@ public:
       anyChangeEvents = true;
     }
 
+    dataFactory.registerClass(origin_id, name, ObjMsgAdcData::create);
+
     return tmp;
   }
 

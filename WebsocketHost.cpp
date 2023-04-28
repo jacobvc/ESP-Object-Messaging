@@ -65,6 +65,7 @@ void WebsocketHost::ws_async_broadcast(void *arg)
 
 bool WebsocketHost::consume(ObjMsgDataRef data)
 {
+  if (server) {
     string str;
     data.get()->serializeJson(str);
     const char *json = str.c_str();
@@ -73,6 +74,10 @@ bool WebsocketHost::consume(ObjMsgDataRef data)
         ESP_LOGE(TAG, "consume(%s)=>%d", json, err);
     }
     return true;
+  }
+  else {
+    return false;
+  }
 }
 
 //
