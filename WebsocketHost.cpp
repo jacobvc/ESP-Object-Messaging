@@ -128,10 +128,9 @@ httpd_handle_t WebsocketHost::start_webserver(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Start the httpd server
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
+    ESP_LOGI(TAG, "Starting HTTP server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Registering the ws handler
-        ESP_LOGI(TAG, "Registering URI handlers");
         for (std::list<httpd_uri_t>::iterator it = uris.begin(); it != uris.end(); ++it){
           httpd_register_uri_handler(server, &(*it));
         }
@@ -314,7 +313,6 @@ WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin)
       if (strlen((const char *) wifi_cfg.sta.ssid)) {
         // CONFIGURED
         configured = true;
-        printf("Configured %d: %s\n", configured, wifi_cfg.sta.ssid);
       }
     }
 
