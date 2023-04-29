@@ -202,6 +202,7 @@ enum ObjMsgSample
 
 class ObjMsgHost
 {
+protected:
   ObjMsgTransport &transport;
 
 public:
