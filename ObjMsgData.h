@@ -47,23 +47,25 @@ public:
   virtual ~ObjMsgData() {}
 
   uint16_t GetOrigin() { return origin; }
+  bool IsFrom(int16_t origins) { return (origin & origins) != 0; }
   string &GetName() { return name; }
   /** Populate value from the contents of 'json'
    */
   virtual bool deserializeValue(cJSON *json) = 0;
 
   /** serialize this object into a JSON string */
-  virtual int serializeJson(string &json) = 0;
+  virtual int serializeObject(string &json) = 0;
 
-  /** Create a string that represents this object */
-  virtual void tostring(string &str) = 0;
+  /** Create a string that represents this object's value */
+  virtual bool GetValue(string &str) = 0;
+  virtual bool GetValue(int &val) = 0;
+  virtual bool GetValue(double &val) = 0;
 
   /** Create a string that conveys the value of this object
    *
    * This will contain, for example, a number for a scalar numeric
    * value, or a JSON object for a complex value.
    */
-  virtual void serializeValue(string &str) = 0;
 };
 
 /***
@@ -90,84 +92,22 @@ protected:
   }
 
 public:
-  void GetValue(T &out) { out = value; }
+  bool GetRawValue(T &out) { out = value; return true; }
 
   // Default implementation (unquoted for numbers and objects)
-  int serializeJson(string &json)
+  int serializeObject(string &json)
   {
     string val;
-    serializeValue(val);
+    GetValue(val);
     json = "{\"name\":\"" + name + "\", \"value\":" + val + "}";
 
     return 0;
-  }
-
-  void tostring(string &str)
-  {
-    string json;
-    serializeJson(json);
-    str = json;
   }
 
   /** MANDATORY vitrual destructor */
   ~ObjMsgDataT() {}
 };
 
-/***
- *       ___  _     _ __  __         ___       _        _   _ _     _   ___
- *      / _ \| |__ (_)  \/  |_____ _|   \ __ _| |_ __ _| | | (_)_ _| |_( _ )
- *     | (_) | '_ \| | |\/| (_-< _` | |) / _` |  _/ _` | |_| | | ' \  _/ _ \
- *      \___/|_.__// |_|  |_/__|__, |___/\__,_|\__\__,_|\___/|_|_||_\__\___/
- *               |__/          |___/
- */
-
-/** ObjMsgData with 8 bit unsigned integer scalar value */
-class ObjMsgDataUInt8 : public ObjMsgDataT<uint8_t>
-{
-protected:
-public:
-  // TODO make constructors protected for all of these derived types.
-  // Skip for now. It is a bit messy and not part of the primary task
-  ObjMsgDataUInt8(uint16_t origin, char const *name, uint8_t value)
-      : ObjMsgDataT<uint8_t>(origin, name)
-  {
-    this->value = value;
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataUInt8(%u, %s, %u) constructed", origin, name, value);
-  }
-  ~ObjMsgDataUInt8()
-  {
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataUInt8 destructed");
-  }
-
-  static ObjMsgDataRef create(uint16_t origin, char const *name, uint8_t value)
-  {
-    return std::make_shared<ObjMsgDataUInt8>(origin, name, value);
-  }
-
-  static ObjMsgDataRef create(uint16_t origin, char const *name)
-  {
-    return std::make_shared<ObjMsgDataUInt8>(origin, name, 0);
-  }
-
-  // Common implementation for integer values
-  bool deserializeValue(cJSON *json)
-  {
-    cJSON *valueObj = cJSON_GetObjectItem(json, "value");
-    if (valueObj)
-    {
-      value = valueObj->valueint;
-      return true;
-    }
-    return false;
-  }
-
-  void serializeValue(string &str)
-  {
-    char buffer[32];
-    sprintf(buffer, "%u", value);
-    str = buffer;
-  }
-};
 
 /***
  *       ___  _     _ __  __         ___       _        ___     _   
@@ -216,11 +156,23 @@ public:
     return false;
   }
 
-  void serializeValue(string &str)
+  bool GetValue(int &val)
+  {
+    val = value;
+    return true;
+  }
+  bool GetValue(double &val)
+  {
+    val = value;
+    return true;
+  }
+  bool GetValue(string &str)
   {
     char buffer[32];
     sprintf(buffer, "%ld", value);
     str = buffer;
+
+    return true;
   }
 };
 
@@ -272,11 +224,23 @@ public:
     return false;
   }
 
-  void serializeValue(string &str)
+  bool GetValue(int &val)
+  {
+    val = value;
+    return true;
+  }
+  bool GetValue(double &val)
+  {
+    val = value;
+    return true;
+  }
+  bool GetValue(string &str)
   {
     char buffer[32];
     sprintf(buffer, "%f", value);
     str = buffer;
+
+    return true;
   }
 };
 
@@ -326,17 +290,29 @@ public:
   }
 
   // Quoted value for strings
-  int serializeJson(string &json)
+  int serializeObject(string &json)
   {
     string val;
-    serializeValue(val);
+    GetValue(val);
     json = "{\"name\":\"" + name + "\", \"value\":\"" + val + "\"}";
 
     return 0;
   }
 
-  void serializeValue(string &str)
+  // TODO try parsing and return true if value is a number
+  bool GetValue(int &val)
+  {
+    //val = value;
+    return false;
+  }
+  bool GetValue(double &val)
+  {
+    //val = value;
+    return false;
+  }
+  bool GetValue(string &str)
   {
     str = value;
+    return true;
   }
 };

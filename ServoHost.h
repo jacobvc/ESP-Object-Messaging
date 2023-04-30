@@ -132,7 +132,7 @@ public:
       Servo *servo = GetServo(point->GetName());
       if (servo) {
         int angle;
-        point->GetValue(angle);
+        point->GetRawValue(angle);
         angle = std::min(std::max(angle, servo->minAngle), servo->maxAngle);
         ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(servo->comparator, 
           AngleToPulsewidth(angle)));
