@@ -41,19 +41,30 @@ events = [
     "LV_EVENT_DELETE", # Object is being deleted 
 ]
 
+types = [
+    "LABEL_CT",
+    "TEXTAREA_CT",
+    "COMBO_CT",
+    "LED_CT",
+    "GAUGE_CT",
+    "BUTTON_CT",
+    "SLIDER_CT",
+    "SWITCH_CT",
+]
+
 # initialized data
 typemaps = dict();
-typemaps['lbl'] = "LABEL_ID";
-typemaps['txa'] = "TEXTAREA_ID";
-typemaps['cmb'] = "COMBO_ID"
-typemaps['led'] = "LED_ID"
-typemaps['gau'] = "GAUGE_ID"
-typemaps['btn'] = "BUTTON_ID"
-typemaps['sld'] = "SLIDER_ID"
-typemaps['swt'] = "SWITCH_ID"
+typemaps['lbl'] = ["LABEL_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['txa'] = ["TEXTAREA_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['cmb'] = ["COMBO_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
+typemaps['sld'] = ["SLIDER_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['swt'] = ["SWITCH_CT", "LV_EVENT_VALUE_CHANGED"]
 
 declare_re = r"extern lv_obj_t.\*\s*(\w+)";
-NAME_SIZE = 16
+NAME_SIZE = 12
 
 # Configuration variables
 working_dir = './'
@@ -159,7 +170,8 @@ def save(values):
     f.write('#include "binding.h"\n\n');
     f.write("void ui_binding_init(LvglHost& host)\n{\n");
     for variable in variables:
-        write_function(f, variable, values[variable + '_pro'], values[variable + '_con'], values[variable + '_evt'])
+        write_function(f, variable, values[variable + '_name'], values[variable + '_pro'], 
+            values[variable + '_con'], values[variable + '_type'], values[variable + '_evt'])
     f.write("}\n");
     f.close();
 #
@@ -174,22 +186,31 @@ def get_symbol_name(variable):
     return variable.replace(constant_prefix, "");
 
 def add_variable(variable):
-    symbol_name = get_symbol_name(variable);
-    if verbose: print('  Adding ' + variable + ' as ' + symbol_name)
+    name = get_symbol_name(variable);
+    if name[0:3] in typemaps:
+        symbol_name = name
+        #name = symbol_name[3:]
+    else:
+        symbol_name = 'lbl'
+    if verbose: print('  Adding ' + variable + ' as ' + name)
     variables.append(variable);
-    choices = [sg_name(symbol_name), sg.Checkbox('Produce', k=variable + '_pro'), 
+    choices = [sg_name(name), 
+        sg.Input(k=variable + '_name', default_text=name[3:].lower(), size=9, font="_10",),
+        sg.Combo(k=variable + '_type', default_value=typemaps[symbol_name[0:3]][0], values=types, font="_ 10"), 
         sg.Checkbox('Consume', k=variable + '_con'),
-        sg.Combo(k=variable + '_evt', default_value="LV_EVENT_CLICKED", values=events, font="_ 10")]
+        sg.Checkbox('Produce', k=variable + '_pro'), 
+        sg.Combo(k=variable + '_evt', default_value=typemaps[symbol_name[0:3]][1], values=events, font="_ 10")]
     layout.append(choices)
 
-def write_function(f, variable, produce, consume, event):
+def write_function(f, variable, name, produce, consume, type, event):
     if verbose: 
-        print('  Writing ' + variable, end=' ')
+        print('  Writing ' + variable + ' (' + name + ')' , end=' ')
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
         print()
-    symbol_name = get_symbol_name(variable);
-    body = '("' + symbol_name[3:].lower() + '", ' + variable + ", " + typemaps[symbol_name[0:3]] + ", (1 << " + event + "));\n";
+    #symbol_name = get_symbol_name(variable);
+    #name = symbol_name[3:].lower()
+    body = '("' + name + '", ' + variable + ", " + type + ", (1 << " + event + "));\n";
     if produce: 
         f.write('    host.addProducer' + body);
     elif verbose:
