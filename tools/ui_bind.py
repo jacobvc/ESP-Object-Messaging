@@ -210,7 +210,7 @@ def write_function(f, variable, name, produce, consume, type, event):
         print()
     #symbol_name = get_symbol_name(variable);
     #name = symbol_name[3:].lower()
-    body = '("' + name + '", ' + variable + ", " + type + ", (1 << " + event + "));\n";
+    body = '("' + name + '", ' + variable + ", " + type + ", " + event + ");\n";
     if produce: 
         f.write('    host.addProducer' + body);
     elif verbose:

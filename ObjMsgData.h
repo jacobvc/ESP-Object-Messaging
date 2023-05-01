@@ -54,7 +54,7 @@ public:
   virtual bool deserializeValue(cJSON *json) = 0;
 
   /** serialize this object into a JSON string */
-  virtual int serializeObject(string &json) = 0;
+  virtual int Serialize(string &json) = 0;
 
   /** Create a string that represents this object's value */
   virtual bool GetValue(string &str) = 0;
@@ -95,7 +95,7 @@ public:
   bool GetRawValue(T &out) { out = value; return true; }
 
   // Default implementation (unquoted for numbers and objects)
-  int serializeObject(string &json)
+  int Serialize(string &json)
   {
     string val;
     GetValue(val);
@@ -290,7 +290,7 @@ public:
   }
 
   // Quoted value for strings
-  int serializeObject(string &json)
+  int Serialize(string &json)
   {
     string val;
     GetValue(val);
