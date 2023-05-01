@@ -25,43 +25,63 @@ events = [
                                   #   `LV_INDEV_LONG_PRESS_REP_TIME` ms.  Not called if dragged.
     "LV_EVENT_CLICKED",             # Called on release if not dragged (regardless to long press)
     "LV_EVENT_RELEASED",            # Called in every cases when the object has been released
-    "LV_EVENT_DRAG_BEGIN",
-    "LV_EVENT_DRAG_END",
-    "LV_EVENT_DRAG_THROW_BEGIN",
+    #"LV_EVENT_DRAG_BEGIN",
+    #"LV_EVENT_DRAG_END",
+    #"LV_EVENT_DRAG_THROW_BEGIN",
     "LV_EVENT_GESTURE",           # The object has been gesture
     "LV_EVENT_KEY",
     "LV_EVENT_FOCUSED",
     "LV_EVENT_DEFOCUSED",
     "LV_EVENT_LEAVE",
     "LV_EVENT_VALUE_CHANGED",      # The object's value has changed (i.e. slider moved) 
-    "LV_EVENT_INSERT",
+    #"LV_EVENT_INSERT",
     "LV_EVENT_REFRESH",
-    "LV_EVENT_APPLY",  # "Ok", "Apply" or similar specific button has clicked
-    "LV_EVENT_CANCEL", # "Close", "Cancel" or similar specific button has clicked
+    #"LV_EVENT_APPLY",  # "Ok", "Apply" or similar specific button has clicked
+    #"LV_EVENT_CANCEL", # "Close", "Cancel" or similar specific button has clicked
     "LV_EVENT_DELETE", # Object is being deleted 
 ]
 
 types = [
-    "LABEL_CT",
-    "TEXTAREA_CT",
-    "COMBO_CT",
-    "LED_CT",
-    "GAUGE_CT",
+    "ARC_CT",
     "BUTTON_CT",
+    "IMAGE_CT",
+    "LABEL_CT",
+    "PANEL_CT",
+    "TEXTAREA_CT",
+    "CALENDAR_CT",
+    "CHECKBOX_CT",
+    "COLORWHEEL_CT",
+    "DROPDOWN_CT",
+    "IMGBUTTON_CT",
+    "KEYBOARD_CT",
+    "ROLLER_CT",
+    "SLIDER_CT",
+    "ROLLER_CT",
     "SLIDER_CT",
     "SWITCH_CT",
+    #"LED_CT",
+    #"GAUGE_CT",
 ]
 
 # initialized data
 typemaps = dict();
-typemaps['lbl'] = ["LABEL_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['txa'] = ["TEXTAREA_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['cmb'] = ["COMBO_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['arc'] = ["ARC_CT", "LV_EVENT_CLICKED"]
 typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
+typemaps['img'] = ["IMAGE_CT", "LV_EVENT_CLICKED"]
+typemaps['lbl'] = ["LABEL_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['pnl'] = ["PANEL_CT", "LV_EVENT_CLICKED"]
+typemaps['txa'] = ["TEXTAREA_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['cal'] = ["CALENDAR_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['chk'] = ["CHECKBOX_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['clr'] = ["COLORWHEEL_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['cmb'] = ["DROPDOWN_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['ibt'] = ["IMGBUTTON_CT", "LV_EVENT_CLICKED"]
+typemaps['kbd'] = ["KEYBOARD_CT", "LV_EVENT_KEY"]
+typemaps['rlr'] = ["ROLLER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['sld'] = ["SLIDER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['swt'] = ["SWITCH_CT", "LV_EVENT_VALUE_CHANGED"]
+#typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
+#typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
 
 declare_re = r"extern lv_obj_t.\*\s*(\w+)";
 NAME_SIZE = 12
