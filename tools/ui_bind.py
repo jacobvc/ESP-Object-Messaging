@@ -4,6 +4,7 @@ import sys
 import PySimpleGUI as sg
 import json
 import getopt
+from datetime import date
 
 helptext = '''
 Collect symbols from include_file lines starting with 'extern lv_obj_t'.
@@ -89,6 +90,7 @@ NAME_SIZE = 12
 # Configuration variables
 working_dir = './'
 include_file = "ui/ui.h"
+all_symbols = False
 binding_file = "LvglBinding"
 constant_prefix = "ui_"
 verbose = False
@@ -138,8 +140,7 @@ def process_include():
     try:
         f = open(working_dir + include_file)
     except Exception as e:
-        print(e)
-        exit()
+        error_exit(e)
     contents = f.readlines()
     f.close()
 
@@ -148,11 +149,13 @@ def process_include():
         match = re.search(declare_re, line)
         if match:
             variable = match.group(1)
-            symbol_name = get_symbol_name(variable)
-            if symbol_name[0:3] in typemaps:
+            name = get_symbol_name(variable)
+            if all_symbols:
+                add_variable(variable)
+            elif name[0:3] in typemaps:
                 add_variable(variable)
             else:
-                notes += "'" + symbol_name + "' produce/consume mapping not supported\n"
+                notes += "'" + name + "' name prefix not supported\n"
 
 def load_config(window):
     global notes
@@ -185,6 +188,14 @@ def save(values):
 
     if verbose: print('Saving output file: ' + working_dir + binding_file + ".cpp")
     f = open(working_dir + binding_file + ".cpp", "w")
+    f.write("/** " + binding_file + ".cpp   Generated " + str(date.today()) +
+'''
+ *
+ * Generated using ESP-Object-Messaging: tools/ui_bind.py. Do not edit manually.
+ * 
+ */        
+'''
+    )
     f.write('#include "LvglHost.h"\n')
     f.write('#include "' + include_file + '"\n')
     f.write('#include "LvglBinding.h"\n\n')
@@ -208,18 +219,20 @@ def get_symbol_name(variable):
 def add_variable(variable):
     name = get_symbol_name(variable)
     if name[0:3] in typemaps:
-        symbol_name = name
-        #name = symbol_name[3:]
+        # prefix matches, use as prefix name and use after-name for prefix
+        prefix_name = name
+        name = prefix_name[3:]
     else:
-        symbol_name = 'lbl'
+        # No prefix match. Configurre to use "label" prefix
+        prefix_name = 'lbl'
     if verbose: print('  Adding ' + variable + ' as ' + name)
     variables.append(variable)
     choices = [sg_name(name), 
-        sg.Input(k=variable + '_name', default_text=name[3:].lower(), size=9, font="_10",),
-        sg.Combo(k=variable + '_type', default_value=typemaps[symbol_name[0:3]][0], values=types, font="_ 10"), 
+        sg.Input(k=variable + '_name', default_text=name.lower(), size=9, font="_10",),
+        sg.Combo(k=variable + '_type', default_value=typemaps[prefix_name[0:3]][0], values=types, font="_ 10"), 
         sg.Checkbox('Consume', k=variable + '_con'),
         sg.Checkbox('Produce', k=variable + '_pro'), 
-        sg.Combo(k=variable + '_evt', default_value=typemaps[symbol_name[0:3]][1], values=events, font="_ 10")]
+        sg.Combo(k=variable + '_evt', default_value=typemaps[prefix_name[0:3]][1], values=events, font="_ 10")]
     layout.append(choices)
 
 def write_function(f, variable, name, produce, consume, type, event):
@@ -228,8 +241,6 @@ def write_function(f, variable, name, produce, consume, type, event):
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
         print()
-    #symbol_name = get_symbol_name(variable)
-    #name = symbol_name[3:].lower()
     body = '("' + name + '", ' + variable + ", " + type + ", " + event + ");\n"
     if produce: 
         f.write('    host.addProducer' + body)
@@ -243,6 +254,7 @@ def write_function(f, variable, name, produce, consume, type, event):
 def show_config():
     print('Settings')
     print('  working_dir: ' + working_dir)
+    print('  all_symbols: ' + str(all_symbols))
     print('  include_file: ' + include_file + ' (' + working_dir + include_file + ')')
     print('  binding_file: ' + binding_file + ' (' + working_dir + binding_file + ')')
     print('    Settings: ' + working_dir + binding_file + '.json)')
@@ -264,11 +276,19 @@ def usage():
 '''
     )
 
+def error_exit(err):
+    # output error, and return with an error code
+    print (str(err))
+    show_config()
+    print('')
+    usage()
+    exit()
+
 # process command line arguments
 arglist = sys.argv[1:]
 
 # Options
-options = "w:i:b:p:vhs"
+options = "w:i:b:p:vhas"
 # Long options doesn't seem to work ... avoid for now
 long_options = [] # ["Help", "working_dir=", "include=", "binding_name=", "prefix=", "verbose", help]
 
@@ -284,8 +304,10 @@ try:
             exit()
         if arg in ("-v", "--verbose"):
             verbose = True
-        if arg in ("-s"):
+        elif arg in ("-s"):
             show_config()
+        elif arg in ("-a"):
+            all_symbols = True
         elif arg in ("-w", "--working_dir"):
             working_dir = argv
             if not working_dir.endswith('/') and not working_dir.endswith('\\'):
@@ -302,9 +324,6 @@ try:
             print ("Constant prefix: " + constant_prefix)
 
 except getopt.error as err:
-    # output error, and return with an error code
-    print (str(err))
-    usage()
-    exit()
+    error_exit(err)
 
 main()
