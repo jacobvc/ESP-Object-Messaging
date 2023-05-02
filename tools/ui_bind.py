@@ -6,8 +6,8 @@ import json
 import getopt
 
 helptext = '''
-Collect symbols from include_file lines starting with 'extern lv_obj_t'.
-Build a UI with Produce and Consume checkboxes for each symbol starting with
+Collect symbols from include_file lines starting with 'extern lv_obj_t *'
+Build a UI with Produce and Consume checkboxes for each symbol (-a option) OR symbols starting with
 a recognized three character prefix (and indicating any that do not start
 with a recognized sequence).
 
@@ -44,53 +44,46 @@ events = [
 types = [
     "ARC_CT",
     "BUTTON_CT",
-    "IMAGE_CT",
     "LABEL_CT",
-    "PANEL_CT",
     "TEXTAREA_CT",
     "CALENDAR_CT",
     "CHECKBOX_CT",
     "COLORWHEEL_CT",
     "DROPDOWN_CT",
+    "ROLLER_CT",
     "IMGBUTTON_CT",
     "KEYBOARD_CT",
-    "ROLLER_CT",
     "SLIDER_CT",
     "ROLLER_CT",
     "SLIDER_CT",
     "SWITCH_CT",
-    #"LED_CT",
-    #"GAUGE_CT",
 ]
 
 # initialized data
 typemaps = dict();
 typemaps['arc'] = ["ARC_CT", "LV_EVENT_CLICKED"]
 typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
-typemaps['img'] = ["IMAGE_CT", "LV_EVENT_CLICKED"]
 typemaps['lbl'] = ["LABEL_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['pnl'] = ["PANEL_CT", "LV_EVENT_CLICKED"]
 typemaps['txa'] = ["TEXTAREA_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['cal'] = ["CALENDAR_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['chk'] = ["CHECKBOX_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['clr'] = ["COLORWHEEL_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['cmb'] = ["DROPDOWN_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['rlr'] = ["ROLLER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['ibt'] = ["IMGBUTTON_CT", "LV_EVENT_CLICKED"]
 typemaps['kbd'] = ["KEYBOARD_CT", "LV_EVENT_KEY"]
-typemaps['rlr'] = ["ROLLER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['sld'] = ["SLIDER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['swt'] = ["SWITCH_CT", "LV_EVENT_VALUE_CHANGED"]
-#typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
-#typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
 
-declare_re = r"extern lv_obj_t.\*\s*(\w+)";
+declare_re = r"extern lv_obj_t\s*\*\s*(\w+)";
 NAME_SIZE = 12
 
 # Configuration variables
 working_dir = './'
-include_file = "ui.h";
-binding_file = "ui_binding";
-constant_prefix = "ui_";
+include_file = "ui.h"
+binding_file = "ui_binding"
+constant_prefix = "ui_"
+all_names = False
 verbose = False
 
 # dynamic variables
@@ -149,7 +142,9 @@ def process_include():
         if match:
             variable = match.group(1);
             symbol_name = get_symbol_name(variable);
-            if symbol_name[0:3] in typemaps:
+            if all_names:
+                add_variable(variable)
+            elif symbol_name[0:3] in typemaps:
                 add_variable(variable)
             else:
                 notes += "'" + symbol_name + "' produce/consume mapping not supported\n";
@@ -243,6 +238,7 @@ def write_function(f, variable, name, produce, consume, type, event):
 def show_config():
     print('Settings')
     print('  working_dir: ' + working_dir)
+    print('  all_names: ' + str(all_names))
     print('  include_file: ' + include_file + ' (' + working_dir + include_file + ')')
     print('  binding_file: ' + binding_file + ' (' + working_dir + binding_file + ')')
     print('    Settings: ' + working_dir + binding_file + '.json)')
@@ -255,14 +251,14 @@ def help():
 
 def usage():
     print(
-'''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-b <binding_name>][-p <prefix>][-v] [-h]'''
+'''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-a][-b <binding_name>][-p <prefix>][-v] [-h]'''
     )
 
 # process command line arguments
 arglist = sys.argv[1:]
 
 # Options
-options = "w:i:b:p:vh"
+options = "w:i:b:p:avh"
 # Long options doesn't seem to work ... avoid for now
 long_options = [] # ["Help", "working_dir=", "include=", "binding_name=", "prefix=", "verbose", help]
 
@@ -278,6 +274,8 @@ try:
             exit();
         if arg in ("-v", "--verbose"):
             verbose = True;
+        elif arg in ("-a"):
+            all_names = True;
         elif arg in ("-w", "--working_dir"):
             working_dir = argv;
             if not working_dir.endswith('/') and not working_dir.endswith('\\'):
