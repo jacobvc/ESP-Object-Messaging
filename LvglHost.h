@@ -13,7 +13,7 @@
 #include <LvglBinding.h>
 #include <unordered_map>
 #include "ObjMsg.h"
-
+#include "stdio.h"
 // typedef ObjMsgDataInt ObjMsgServoData;
 
 class LvglHost : public ObjMsgHost
@@ -46,6 +46,7 @@ public:
 
     // Store this object in user_data for lookup
     lv_obj_add_event_cb(control, produce_cb, eventCode, this);
+    printf("Registering %s: %p\n", name, control);
 
     return true;
   }
@@ -201,7 +202,7 @@ protected:
   {
     ObjMsgDataRef data;
     LvglHost *host = (LvglHost *)event->user_data;
-    control_reg_def_t *ctx = host->GetProducer(event->target);
+    control_reg_def_t *ctx = host->GetProducer(event->current_target);
     if (ctx)
     {
       if (lv_event_get_code(event) == ctx->eventCode)
@@ -229,11 +230,17 @@ protected:
           host->produce(data);
           break;
         case CALENDAR_CT:
-          // lv_calendar_set_shown_date(calendar, year, month)
-          // lv_calendar_set_today_date(calendar, year, month, day)
-          // lv_calendar_get_pressed_date(calendar, &date)
-          ESP_LOGE(host->TAG, "produce type (%d) NOT IMPLEMENTED", ctx->type);
+        {
+          char buffer[60];
+          lv_calendar_date_t date;
+          lv_calendar_get_pressed_date(ctx->obj, &date);
+          sprintf(buffer, "{ \"year:\" %d, \"month:\" %d, \"day:\" %d }",
+            date.year, date.month,  date.day);
+          data = ObjMsgDataString::create(
+              host->origin_id, ctx->name, buffer, true);
+          host->produce(data);
           break;
+        }
         case CHECKBOX_CT:
           data = ObjMsgDataInt::create(host->origin_id, ctx->name,
                                        (lv_obj_get_state(ctx->obj) & LV_STATE_CHECKED) ? 1 : 0);
@@ -287,7 +294,7 @@ protected:
     }
     else
     {
-      ESP_LOGE(host->TAG, "produce event NOT REGISTERED");
+      ESP_LOGE(host->TAG, "produce event for %p NOT REGISTERED", event->target);
     }
   }
 

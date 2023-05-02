@@ -252,13 +252,18 @@ public:
  *               |__/          |___/                                      |___/
  */
 
-/** ObjMsgData with std::string object value */
+/** ObjMsgData with std::string object value 
+ * 
+ * Note that if this is constructed with asJson = True, the
+ * (presumably json) string value is serialized without quotes.
+ */
 class ObjMsgDataString : public ObjMsgDataT<string>
 {
 protected:
+  bool asJson;
 public:
-  ObjMsgDataString(uint16_t origin, char const *name, const char *value)
-      : ObjMsgDataT<string>(origin, name)
+  ObjMsgDataString(uint16_t origin, char const *name, const char *value, bool asJson = false)
+      : ObjMsgDataT<string>(origin, name), asJson(asJson)
   {
     this->value = value;
     // ESP_LOGI(CORE_TAG, "ObjMsgDataString(%u, %s, %u) constructed", origin, name, value);
@@ -268,9 +273,9 @@ public:
     // ESP_LOGI(CORE_TAG, "ObjMsgDataString destructed");
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name, const char *value)
+  static ObjMsgDataRef create(uint16_t origin, char const *name, const char *value, bool asJson = false)
   {
-    return std::make_shared<ObjMsgDataString>(origin, name, value);
+    return std::make_shared<ObjMsgDataString>(origin, name, value, asJson);
   }
 
   static ObjMsgDataRef create(uint16_t origin, char const *name)
@@ -294,7 +299,14 @@ public:
   {
     string val;
     GetValue(val);
-    json = "{\"name\":\"" + name + "\", \"value\":\"" + val + "\"}";
+    json = "{\"name\":\"" + name + "\", \"value\":";
+    if (asJson) {
+      json += val;
+    }
+    else {
+      json += "\"" + val + "\"";
+    }
+    json += " }";
 
     return 0;
   }
