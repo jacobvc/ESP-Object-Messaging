@@ -6,8 +6,8 @@ import json
 import getopt
 
 helptext = '''
-Collect symbols from include_file lines starting with 'extern lv_obj_t *'
-Build a UI with Produce and Consume checkboxes for each symbol (-a option) OR symbols starting with
+Collect symbols from include_file lines starting with 'extern lv_obj_t'.
+Build a UI with Produce and Consume checkboxes for each symbol starting with
 a recognized three character prefix (and indicating any that do not start
 with a recognized sequence).
 
@@ -44,46 +44,53 @@ events = [
 types = [
     "ARC_CT",
     "BUTTON_CT",
+    "IMAGE_CT",
     "LABEL_CT",
+    "PANEL_CT",
     "TEXTAREA_CT",
     "CALENDAR_CT",
     "CHECKBOX_CT",
     "COLORWHEEL_CT",
     "DROPDOWN_CT",
-    "ROLLER_CT",
     "IMGBUTTON_CT",
     "KEYBOARD_CT",
+    "ROLLER_CT",
     "SLIDER_CT",
     "ROLLER_CT",
     "SLIDER_CT",
     "SWITCH_CT",
+    #"LED_CT",
+    #"GAUGE_CT",
 ]
 
 # initialized data
-typemaps = dict();
+typemaps = dict()
 typemaps['arc'] = ["ARC_CT", "LV_EVENT_CLICKED"]
 typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
+typemaps['img'] = ["IMAGE_CT", "LV_EVENT_CLICKED"]
 typemaps['lbl'] = ["LABEL_CT", "LV_EVENT_VALUE_CHANGED"]
+typemaps['pnl'] = ["PANEL_CT", "LV_EVENT_CLICKED"]
 typemaps['txa'] = ["TEXTAREA_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['cal'] = ["CALENDAR_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['chk'] = ["CHECKBOX_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['clr'] = ["COLORWHEEL_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['cmb'] = ["DROPDOWN_CT", "LV_EVENT_VALUE_CHANGED"]
-typemaps['rlr'] = ["ROLLER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['ibt'] = ["IMGBUTTON_CT", "LV_EVENT_CLICKED"]
 typemaps['kbd'] = ["KEYBOARD_CT", "LV_EVENT_KEY"]
+typemaps['rlr'] = ["ROLLER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['sld'] = ["SLIDER_CT", "LV_EVENT_VALUE_CHANGED"]
 typemaps['swt'] = ["SWITCH_CT", "LV_EVENT_VALUE_CHANGED"]
+#typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
+#typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
 
-declare_re = r"extern lv_obj_t\s*\*\s*(\w+)";
+declare_re = r"extern lv_obj_t.\*\s*(\w+)"
 NAME_SIZE = 12
 
 # Configuration variables
 working_dir = './'
-include_file = "ui.h"
-binding_file = "ui_binding"
+include_file = "ui/ui.h"
+binding_file = "LvglBinding"
 constant_prefix = "ui_"
-all_names = False
 verbose = False
 
 # dynamic variables
@@ -120,7 +127,7 @@ def main():
         if event == 'Save':
             save(values)
 
-    window.close();
+    window.close()
 
 #
 # Action functions
@@ -129,32 +136,30 @@ def main():
 def process_include():
     if verbose: print('Processing include file: ' + working_dir + include_file)
     try:
-        f = open(working_dir + include_file);
+        f = open(working_dir + include_file)
     except Exception as e:
         print(e)
         exit()
-    contents = f.readlines();
-    f.close();
+    contents = f.readlines()
+    f.close()
 
     for line in contents:
         global notes
-        match = re.search(declare_re, line);
+        match = re.search(declare_re, line)
         if match:
-            variable = match.group(1);
-            symbol_name = get_symbol_name(variable);
-            if all_names:
-                add_variable(variable)
-            elif symbol_name[0:3] in typemaps:
+            variable = match.group(1)
+            symbol_name = get_symbol_name(variable)
+            if symbol_name[0:3] in typemaps:
                 add_variable(variable)
             else:
-                notes += "'" + symbol_name + "' produce/consume mapping not supported\n";
+                notes += "'" + symbol_name + "' produce/consume mapping not supported\n"
 
 def load_config(window):
     global notes
     if verbose: print('Loading config file: ' + working_dir + binding_file + ".json")
     try:
-        f = open(working_dir + binding_file + ".json");
-        found = json.load(f);
+        f = open(working_dir + binding_file + ".json")
+        found = json.load(f)
         for key, value in found['values'].items():
             try:
                 if verbose: print('  Loading: ' + key)
@@ -164,7 +169,7 @@ def load_config(window):
                 print("EX 1:" + str(e))
                 notes += key[0:-4] + " Not in current code. Skipping\n"
                 #print(notes)
-        f.close();
+        f.close()
     except Exception as e:
         #print(e)
         print('Warning "' + binding_file + '.json" not found')
@@ -174,21 +179,21 @@ def save(values):
     jdata['variables'] = variables
     jdata['values'] = values
     if verbose: print('Saving config file: ' + working_dir + binding_file + ".json")
-    f = open(working_dir + binding_file + ".json", "w");
+    f = open(working_dir + binding_file + ".json", "w")
     f.write(json.dumps(jdata, indent=2))
-    f.close();
+    f.close()
 
     if verbose: print('Saving output file: ' + working_dir + binding_file + ".cpp")
-    f = open(working_dir + binding_file + ".cpp", "w");
-    f.write('#include "LvglHost.h"\n');
-    f.write('#include "' + include_file + '"\n');
-    f.write('#include "binding.h"\n\n');
-    f.write("void ui_binding_init(LvglHost& host)\n{\n");
+    f = open(working_dir + binding_file + ".cpp", "w")
+    f.write('#include "LvglHost.h"\n')
+    f.write('#include "' + include_file + '"\n')
+    f.write('#include "LvglBinding.h"\n\n')
+    f.write("void ui_binding_init(LvglHost& host)\n{\n")
     for variable in variables:
         write_function(f, variable, values[variable + '_name'], values[variable + '_pro'], 
             values[variable + '_con'], values[variable + '_type'], values[variable + '_evt'])
-    f.write("}\n");
-    f.close();
+    f.write("}\n")
+    f.close()
 #
 # Utility functions
 #
@@ -198,17 +203,17 @@ def sg_name(name):
     return sg.Text(name + ' ' + ' '*dots, size=(NAME_SIZE,1), justification='l',pad=(0,0))
 
 def get_symbol_name(variable):
-    return variable.replace(constant_prefix, "");
+    return variable.replace(constant_prefix, "")
 
 def add_variable(variable):
-    name = get_symbol_name(variable);
+    name = get_symbol_name(variable)
     if name[0:3] in typemaps:
         symbol_name = name
         #name = symbol_name[3:]
     else:
         symbol_name = 'lbl'
     if verbose: print('  Adding ' + variable + ' as ' + name)
-    variables.append(variable);
+    variables.append(variable)
     choices = [sg_name(name), 
         sg.Input(k=variable + '_name', default_text=name[3:].lower(), size=9, font="_10",),
         sg.Combo(k=variable + '_type', default_value=typemaps[symbol_name[0:3]][0], values=types, font="_ 10"), 
@@ -223,22 +228,21 @@ def write_function(f, variable, name, produce, consume, type, event):
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
         print()
-    #symbol_name = get_symbol_name(variable);
+    #symbol_name = get_symbol_name(variable)
     #name = symbol_name[3:].lower()
-    body = '("' + name + '", ' + variable + ", " + type + ", " + event + ");\n";
+    body = '("' + name + '", ' + variable + ", " + type + ", " + event + ");\n"
     if produce: 
-        f.write('    host.addProducer' + body);
+        f.write('    host.addProducer' + body)
     elif verbose:
-        f.write('    // addProducer' + body);
+        f.write('    // addProducer' + body)
     if consume: 
-        f.write('    host.addConsumer' + body);
+        f.write('    host.addConsumer' + body)
     elif verbose:
-        f.write('    // addConsumer' + body);
+        f.write('    // addConsumer' + body)
 
 def show_config():
     print('Settings')
     print('  working_dir: ' + working_dir)
-    print('  all_names: ' + str(all_names))
     print('  include_file: ' + include_file + ' (' + working_dir + include_file + ')')
     print('  binding_file: ' + binding_file + ' (' + working_dir + binding_file + ')')
     print('    Settings: ' + working_dir + binding_file + '.json)')
@@ -248,17 +252,23 @@ def show_config():
 def help():
     print(helptext)
     usage()
+    show_config()
 
 def usage():
     print(
-'''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-a][-b <binding_name>][-p <prefix>][-v] [-h]'''
+'''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-b <binding_name>][-p <prefix>][-v] [-h]
+     -a: Present all lv_obj symbols as opposed to only those with recognized name prefix
+     -s: Report settings to stdout
+     -v: Verbose
+     -h: Show this help
+'''
     )
 
 # process command line arguments
 arglist = sys.argv[1:]
 
 # Options
-options = "w:i:b:p:avh"
+options = "w:i:b:p:vhs"
 # Long options doesn't seem to work ... avoid for now
 long_options = [] # ["Help", "working_dir=", "include=", "binding_name=", "prefix=", "verbose", help]
 
@@ -271,29 +281,30 @@ try:
 
         if arg in ("-h", "--help"):
             help()
-            exit();
+            exit()
         if arg in ("-v", "--verbose"):
-            verbose = True;
-        elif arg in ("-a"):
-            all_names = True;
+            verbose = True
+        if arg in ("-s"):
+            show_config()
         elif arg in ("-w", "--working_dir"):
-            working_dir = argv;
+            working_dir = argv
             if not working_dir.endswith('/') and not working_dir.endswith('\\'):
                 working_dir += '/'
             print ("Working directory: " + working_dir)
         elif arg in ("-i", "--include"):
-            include_file = argv;
+            include_file = argv
             print ("Include file: " + include_file)
         elif arg in ("-b", "--binding_name"):
-            binding_file = argv;
+            binding_file = argv
             print ("Binding file: " + binding_file)
         elif arg in ("-p", "--prefix"):
-            constant_prefix = argv;
+            constant_prefix = argv
             print ("Constant prefix: " + constant_prefix)
 
 except getopt.error as err:
     # output error, and return with an error code
     print (str(err))
+    usage()
     exit()
 
 main()

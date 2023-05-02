@@ -215,7 +215,7 @@ public:
     TAG = tag;
     origin_id = origin;
   }
-  virtual bool consume(ObjMsgDataRef data) { return false; }
+  virtual bool consume(ObjMsgData *data) { return false; }
   virtual BaseType_t produce(ObjMsgDataRef data)
   {
     return transport.send(data);

@@ -124,9 +124,9 @@ public:
     return true;
   }
 
-  bool consume(ObjMsgDataRef data)
+  bool consume(ObjMsgData *data)
   {
-    ObjMsgServoData *point = static_cast<ObjMsgServoData *>(data.get());
+    ObjMsgServoData *point = static_cast<ObjMsgServoData *>(data);
     if (point)
     {
       Servo *servo = GetServo(point->GetName());

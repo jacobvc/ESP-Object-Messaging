@@ -42,7 +42,7 @@ class WebsocketHost : public ObjMsgHost
 public:
   WebsocketHost(ObjMsgTransport &transport, uint16_t origin);
   bool start();
-  bool consume(ObjMsgDataRef data);
+  bool consume(ObjMsgData *data);
   void stop_webserver();
   bool Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), bool ws);
 

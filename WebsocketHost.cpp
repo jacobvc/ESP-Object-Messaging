@@ -63,11 +63,11 @@ void WebsocketHost::ws_async_broadcast(void *arg)
     free(arg);
 }
 
-bool WebsocketHost::consume(ObjMsgDataRef data)
+bool WebsocketHost::consume(ObjMsgData *data)
 {
   if (server) {
     string str;
-    data.get()->Serialize(str);
+    data->Serialize(str);
     const char *json = str.c_str();
     int err = httpd_queue_work(server, ws_async_broadcast, strdup(json));
     if (err != ESP_OK) {
