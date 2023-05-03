@@ -3,8 +3,6 @@
 #include <esp_log.h>
 #include "ObjMsg.h"
 
-//static const char *TAG = "ObjMsg";
-
 ObjMsgDataFactory dataFactory;
 
 BaseType_t ObjMsgTransport::send(ObjMsgDataRef data)

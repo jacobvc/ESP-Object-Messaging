@@ -7,10 +7,10 @@ import getopt
 from datetime import date
 
 helptext = '''
-Collect symbols from include_file lines starting with 'extern lv_obj_t'.
-Build a UI with Produce and Consume checkboxes for each symbol starting with
-a recognized three character prefix (and indicating any that do not start
-with a recognized sequence).
+Collect symbols from include_file lines starting with 'extern lv_obj_t *'.
+Build a UI with Produce and Consume checkboxes for each symbol (-a option)
+or each symbol starting with a suported three character prefix (and reporting
+any that do not start with a supported sequence).
 
 'Save' generates <binding_name>.cpp with Produce / Comsume code for the checked
 items, and <binding_name>.json to save / restore the settings.
@@ -199,7 +199,7 @@ def save(values):
     f.write('#include "LvglHost.h"\n')
     f.write('#include "' + include_file + '"\n')
     f.write('#include "LvglBinding.h"\n\n')
-    f.write("void ui_binding_init(LvglHost& host)\n{\n")
+    f.write("void LvglBindingInit(LvglHost& host)\n{\n")
     for variable in variables:
         write_function(f, variable, values[variable + '_name'], values[variable + '_pro'], 
             values[variable + '_con'], values[variable + '_type'], values[variable + '_evt'])
@@ -241,15 +241,15 @@ def write_function(f, variable, name, produce, consume, type, event):
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
         print()
-    body = '("' + name + '", ' + variable + ", " + type + ", " + event + ");\n"
+    body = '("' + name + '", ' + variable + ", " + type 
     if produce: 
-        f.write('    host.addProducer' + body)
+        f.write('    host.addProducer' + body + ", " + event + ");\n")
     elif verbose:
-        f.write('    // addProducer' + body)
+        f.write('    // addProducer' + body + ", " + event + ");\n")
     if consume: 
-        f.write('    host.addConsumer' + body)
+        f.write('    host.addConsumer' + body + ");\n")
     elif verbose:
-        f.write('    // addConsumer' + body)
+        f.write('    // addConsumer' + body + ");\n")
 
 def show_config():
     print('Settings')

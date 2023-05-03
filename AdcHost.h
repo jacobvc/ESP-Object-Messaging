@@ -48,11 +48,11 @@ public:
     rRef = raw;
   }
 
-  /** Calculate the value for 'rawAdc' measurement.
+  /** Calculate the scaled value for 'rawAdc' measurement.
    *
    * Calculate the 2X value using the segments {0, vMinX2} to {rRef, vRefX2}
    * and {rRef, vRefX2} to {rMax, vMaxX2},
-   * one of which may be zero length, and round to value
+   * one of which may be zero length, then round to value
    */
   int SetValue(int rawAdc)
   {
@@ -203,6 +203,7 @@ protected:
       }
     }
   }
+  
   TickType_t sampleIntervalMs;
   adc_oneshot_unit_handle_t adc_handle;
   unordered_map<string, AdcChannel> channels;

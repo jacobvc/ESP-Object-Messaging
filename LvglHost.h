@@ -32,9 +32,10 @@ public:
   {
   }
 
-  int addConsumer(const char *name, lv_obj_t *control, enum ControlType binding, lv_event_code_t eventCode)
+  int addConsumer(const char *name, lv_obj_t *control, enum ControlType binding)
   {
-    control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = eventCode};
+    // Note: event code is NOT used for a counsumer
+    control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL };
     consume_map[name] = def;
 
     return true;

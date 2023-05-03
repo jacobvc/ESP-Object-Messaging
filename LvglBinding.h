@@ -19,4 +19,4 @@ enum ControlType {
 
 class LvglHost;
 
-void ui_binding_init(LvglHost& host);
+void LvglBindingInit(LvglHost& host);
