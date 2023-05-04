@@ -7,7 +7,6 @@
 #include <nvs_flash.h>
 #include <sys/param.h>
 #include "nvs_flash.h"
-#include "protocol_examples_common.h"
 
 #include "WebsocketHost.h"
 

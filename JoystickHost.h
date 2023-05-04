@@ -11,6 +11,7 @@
 #include "ObjMsg.h"
 #include "ObjMsgJoystickData.h"
 #include "AdcHost.h"
+#include "GpioHost.h"
 
 // Sample count to average
 #define NO_OF_SAMPLES 5
@@ -18,9 +19,9 @@
 class JoystickHost : public ObjMsgHost
 {
 public:
-  JoystickHost(AdcHost &adc, ObjMsgTransport &transport, uint16_t origin, 
+  JoystickHost(AdcHost &adc, GpioHost &gpio, ObjMsgTransport &transport, uint16_t origin, 
     TickType_t sampleIntervalMs)
-      : ObjMsgHost(transport, "JOYSTICK", origin), adc(adc)
+      : ObjMsgHost(transport, "JOYSTICK", origin), adc(adc), gpio(gpio)
   {
     this->sampleIntervalMs = sampleIntervalMs;
     anyChangeEvents = false;
@@ -29,7 +30,7 @@ public:
   int add(string name, ObjMsgSample mode, 
     adc_channel_t ad_x, adc_channel_t ad_y, gpio_num_t btn)
   {
-    joysticks[name] = Joystick(name, btn, mode);
+    joysticks[name] = Joystick(name, mode);
     Joystick &joy = joysticks[name];
 
     if (mode == CHANGE_EVENT) {
@@ -43,9 +44,9 @@ public:
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
     joy.ychan = ch;
 
-    dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::create);
+    joy.btnPort = gpio.Add(name + "-up", POLLING, IS_INPUT_GF, btn);
 
-    init_switch(btn);
+    dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::create);
 
     return 0;
   }
@@ -79,12 +80,11 @@ protected:
   {
   public:
     Joystick() {}
-    Joystick(string name, gpio_num_t btn, ObjMsgSample mode, 
+    Joystick(string name, ObjMsgSample mode, 
       int hysteresis = 5)
     {
       this->name = name;
       this->mode = mode;
-      this->btnpin = btn;
       this->centered = false;
       this->changed = 0;
       this->hysteresis = hysteresis;
@@ -94,7 +94,7 @@ protected:
     // Configuration
     AdcChannel *xchan;
     AdcChannel *ychan;
-    gpio_num_t btnpin;
+    GpioPort *btnPort;
     // Calibration
     bool centered;
 
@@ -108,6 +108,7 @@ protected:
   unordered_map<string, Joystick> joysticks;
   TickType_t sampleIntervalMs;
   AdcHost &adc;
+  GpioHost &gpio;
 
   Joystick *GetJoystick(string name)
   {
@@ -120,23 +121,6 @@ protected:
     {
       return NULL;
     }
-  }
-
-  void init_switch(int btn)
-  {
-    gpio_config_t io_conf;
-    // disable interrupt
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    // bit mask of the pins
-    io_conf.pin_bit_mask = 1ull << btn;
-    // set as input mode
-    io_conf.mode = GPIO_MODE_INPUT;
-    // Enable pull-up mode
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    // disable pull-down mode
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    gpio_config(&io_conf);
-    // gpio_set_drive_capability(btn, GPIO_DRIVE_CAP_3 );
   }
 
   static void task(void *arg)
@@ -153,7 +137,7 @@ protected:
         Joystick &js = it->second;
         if (js.mode == CHANGE_EVENT)
         {
-          if (ep->measure(&js))
+          if (ep->Measure(&js))
           {
             ObjMsgDataRef data = ObjMsgJoystickData::create(
               ep->origin_id, js.name.c_str(), js.sample);
@@ -164,7 +148,7 @@ protected:
     }
   }
 
-  int measure(Joystick *js)
+  bool Measure(Joystick *js)
   {
     int32_t reading_x = 0;
     int32_t reading_y = 0;
@@ -174,10 +158,10 @@ protected:
     // Measure NO_OF_SAMPLES times and average the reading
     for (int i = 0; i < NO_OF_SAMPLES; i++)
     {
-      reading_x += adc.Read(js->xchan);
-      reading_y += adc.Read(js->ychan);
+      reading_x += adc.Measure(js->xchan);
+      reading_y += adc.Measure(js->ychan);
     }
-    up = gpio_get_level(js->btnpin);
+    up = gpio.Measure(js->btnPort);
 
     reading_x /= NO_OF_SAMPLES;
     reading_y /= NO_OF_SAMPLES;
@@ -198,13 +182,13 @@ protected:
       sample->up = up;
       js->changed = true;
 
-      return 1;
+      return true;
     }
     else
     {
       // No change
       js->changed = false;
-      return 0;
+      return false;
     }
   }
 };

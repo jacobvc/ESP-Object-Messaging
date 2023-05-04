@@ -47,7 +47,7 @@ public:
   virtual ~ObjMsgData() {}
 
   uint16_t GetOrigin() { return origin; }
-  bool IsFrom(int16_t origins) { return (origin & origins) != 0; }
+  bool IsFrom(int16_t origin) { return this->origin == origin; }
   string &GetName() { return name; }
   /** Populate value from the contents of 'json'
    */

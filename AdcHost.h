@@ -135,22 +135,22 @@ public:
     return tmp;
   }
 
-  int Read(string name)
+  int Measure(string name)
   {
     AdcChannel *channel = GetChannel(name);
     if (channel)
     {
-      return Read(channel);
+      return Measure(channel);
     }
     return INT_MIN;
   }
 
-  int Read(AdcChannel *channel)
+  int Measure(AdcChannel *channel)
   {
-    int value;
-    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, channel->channel, &value));
+    int rawValue;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, channel->channel, &rawValue));
     // Set value, applying scaling
-    return channel->SetValue(value);
+    return channel->SetValue(rawValue);
   }
 
   bool start()
@@ -192,7 +192,7 @@ protected:
         if (js.mode == CHANGE_EVENT)
         {
           int value = js.GetValue();
-          ep->Read(&js);
+          ep->Measure(&js);
           if (abs(value - js.GetValue()) > js.hysteresis)
           {
             ObjMsgDataRef data = ObjMsgAdcData::create(

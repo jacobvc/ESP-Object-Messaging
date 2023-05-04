@@ -1,35 +1,4 @@
-/**
- *      _       _                                                   _     
- *     (_) ___ | |_  __      _____     ___  ___ _ ____   _____ _ __| |__  
- *     | |/ _ \| __| \ \ /\ / / __|   / __|/ _ \ '__\ \ / / _ \ '__| '_ \ 
- *     | | (_) | |_   \ V  V /\__ \   \__ \  __/ |   \ V /  __/ |_ | | | |
- *     |_|\___/ \__|___\_/\_/ |___/___|___/\___|_|    \_/ \___|_(_)|_| |_|
- *                |_____|        |_____|                                  
- *
- */
-/** @file
- *
- * @defgroup iot_ws_server Websocket Server
- * @{
- * @ingroup iot_core
- * 
- * @details The iot_ws_server component initializes and provides for operation of
- * a web site and a websocket server, within the iot_framework.
- *
- * This is the core module for running a websocket capable server (over wifi).
- * To incorporate this into a project, the setting
- *    CONFIG_HTTPD_WS_SUPPORT=y
- * must be set in 'make menuconfig'
- * 
- * It is launched by calling iot_ws_server_init() from app_main, and it
- * provides the function ws_process_consume_json to send json data to all websocket clients.
- * 
- * The integrating application IS REQUIRED TO embed files index.html and favicon.ico
- * 
- */
-
 #include <freertos/event_groups.h>
-#include "esp_httpd_priv.h"
 #include "esp_netif.h"
 #include "esp_eth.h"
 #include "esp_http_server.h"
