@@ -1,8 +1,8 @@
 /** @file
  *
- * The ServoHost class provides for operation of
- * servo motors
- *
+ * The LvglHost class provides messaging with a
+ * LVGL display, especially optimized to work with 
+ * Squareline designed displays
  */
 #pragma once
 
@@ -114,7 +114,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG, "consume (%s) button value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -128,8 +128,19 @@ public:
           lv_textarea_set_text(ctx->obj, strVal.c_str());
           break;
         case CALENDAR_CT:
-          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
-          return false;
+          {
+            msg->GetValue(strVal);
+            lv_calendar_date_t date;
+            cJSON *item = cJSON_Parse(strVal.c_str());
+
+            date.day = cJSON_GetNumberValue(cJSON_GetObjectItem(item, "day"));
+            date.month = cJSON_GetNumberValue(cJSON_GetObjectItem(item, "month")) + 1;
+            date.year = cJSON_GetNumberValue(cJSON_GetObjectItem(item, "year"));
+
+            lv_calendar_set_showed_date(ctx->obj, date.year, date.month);
+            lv_calendar_set_today_date(ctx->obj, date.year, date.month, date.day);
+          }
+          break;
         case CHECKBOX_CT:
           if (msg->GetValue(intVal))
           {
@@ -255,7 +266,7 @@ protected:
           lv_calendar_date_t date;
           lv_calendar_get_pressed_date(ctx->obj, &date);
           sprintf(buffer, "{ \"year:\" %d, \"month:\" %d, \"day:\" %d }",
-                  date.year, date.month, date.day);
+                  date.year, date.month - 1, date.day);
           data = ObjMsgDataString::create(
               host->origin_id, ctx->name, buffer, true);
           host->produce(data);

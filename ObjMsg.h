@@ -148,7 +148,15 @@ public:
         }
         else
         {
-          ESP_LOGE("deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
+          printf("create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName), 
+            cJSON_Print(cJSON_GetObjectItem(root, "value")));
+          // If not registered, deliver as JSON object carried ib string
+          data = ObjMsgDataString::create(origin, cJSON_GetStringValue(jsonName), 
+            cJSON_Print(cJSON_GetObjectItem(root, "value")), true);
+          ESP_LOGI("deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
+          
+          cJSON_Delete(root);
+          return data;
         }
       }
       else

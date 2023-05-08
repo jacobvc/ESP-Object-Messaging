@@ -44,7 +44,7 @@ public:
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
     joy.ychan = ch;
 
-    joy.btnPort = gpio.Add(name + "-up", POLLING, IS_INPUT_GF | PULLUP_GF, btn);
+    joy.btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
     dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::create);
 

@@ -27,8 +27,8 @@ class GpioPort
 public:
   /** Default constructor to support map */
   GpioPort() {}
-  /** Add 'channel' with range from zero to 'maxCount',
-   * and scaling from 'min' to 'max'
+  /** 
+   * 
    */
   GpioPort(string name, gpio_num_t pin, ObjMsgSample mode, GpioFlags flags, GpioHost *host)
   {
@@ -67,7 +67,7 @@ public:
     event_queue = NULL;
   }
 
-  GpioPort *Add(string name, ObjMsgSample mode, GpioFlags flags, gpio_num_t pin)
+  GpioPort *Add(string name, gpio_num_t pin, ObjMsgSample mode, GpioFlags flags)
   {
     ports[name] = GpioPort(name, pin, mode, flags, this);
     GpioPort *tmp = &ports[name];
@@ -86,7 +86,6 @@ public:
       // INPUT
       io_conf.mode = GPIO_MODE_INPUT;               // set as input mode
       io_conf.intr_type = EdgeConfig(flags);        // interrupt of both edges
-      gpio_config(&io_conf);
     }
     else
     {
@@ -97,6 +96,7 @@ public:
     io_conf.pin_bit_mask = 1ull << pin;           // bit mask of the pins, use GPIO4/5 here
     io_conf.pull_down_en = (flags & PULLDOWN_GF) ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = (flags & PULLUP_GF) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
+    
     gpio_config(&io_conf);
     
     return tmp;
