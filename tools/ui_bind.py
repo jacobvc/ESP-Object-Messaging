@@ -14,7 +14,6 @@ any that do not start with a supported sequence).
 
 'Save' generates <binding_name>.cpp with Produce / Comsume code for the checked
 items, and <binding_name>.json to save / restore the settings.
-
 '''
 events = [
     "LV_EVENT_PRESSED",             # The object has been pressed
@@ -29,7 +28,7 @@ events = [
     #"LV_EVENT_DRAG_BEGIN",
     #"LV_EVENT_DRAG_END",
     #"LV_EVENT_DRAG_THROW_BEGIN",
-    "LV_EVENT_GESTURE",           # The object has been gesture
+    #"LV_EVENT_GESTURE",           # The object has been gesture
     "LV_EVENT_KEY",
     "LV_EVENT_FOCUSED",
     "LV_EVENT_DEFOCUSED",
@@ -39,32 +38,14 @@ events = [
     "LV_EVENT_REFRESH",
     #"LV_EVENT_APPLY",  # "Ok", "Apply" or similar specific button has clicked
     #"LV_EVENT_CANCEL", # "Close", "Cancel" or similar specific button has clicked
-    "LV_EVENT_DELETE", # Object is being deleted 
-]
-
-types = [
-    "ARC_CT",
-    "BUTTON_CT",
-    "IMAGE_CT",
-    "LABEL_CT",
-    "PANEL_CT",
-    "TEXTAREA_CT",
-    "CALENDAR_CT",
-    "CHECKBOX_CT",
-    "COLORWHEEL_CT",
-    "DROPDOWN_CT",
-    "IMGBUTTON_CT",
-    "KEYBOARD_CT",
-    "ROLLER_CT",
-    "SLIDER_CT",
-    "ROLLER_CT",
-    "SLIDER_CT",
-    "SWITCH_CT",
-    #"LED_CT",
-    #"GAUGE_CT",
+    #"LV_EVENT_DELETE", # Object is being deleted 
 ]
 
 # initialized data
+
+# A dictionary of name prefixes and associated 
+# control type / default event. If you add a new control type
+# it must be added to the ControlType enum in LcvglBinding.h
 typemaps = dict()
 typemaps['arc'] = ["ARC_CT", "LV_EVENT_CLICKED"]
 typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
@@ -84,6 +65,9 @@ typemaps['swt'] = ["SWITCH_CT", "LV_EVENT_VALUE_CHANGED"]
 #typemaps['led'] = ["LED_CT", "LV_EVENT_VALUE_CHANGED"]
 #typemaps['gau'] = ["GAUGE_CT", "LV_EVENT_VALUE_CHANGED"]
 
+# Derive a list of the mapped types
+types = list(dict(typemaps.values()).keys())
+
 declare_re = r"extern lv_obj_t.\*\s*(\w+)"
 NAME_SIZE = 12
 
@@ -91,7 +75,7 @@ NAME_SIZE = 12
 working_dir = './'
 include_file = "ui/ui.h"
 all_symbols = False
-binding_file = "LvglBinding"
+binding_name = "LvglBinding"
 constant_prefix = "ui_"
 verbose = False
 
@@ -159,9 +143,9 @@ def process_include():
 
 def load_config(window):
     global notes
-    if verbose: print('Loading config file: ' + working_dir + binding_file + ".json")
+    if verbose: print('Loading config file: ' + working_dir + binding_name + ".json")
     try:
-        f = open(working_dir + binding_file + ".json")
+        f = open(working_dir + binding_name + ".json")
         found = json.load(f)
         for key, value in found['values'].items():
             try:
@@ -175,20 +159,20 @@ def load_config(window):
         f.close()
     except Exception as e:
         #print(e)
-        print('Warning "' + binding_file + '.json" not found')
+        print('Warning "' + binding_name + '.json" not found')
 
 def save(values):
     jdata = {}
     jdata['variables'] = variables
     jdata['values'] = values
-    if verbose: print('Saving config file: ' + working_dir + binding_file + ".json")
-    f = open(working_dir + binding_file + ".json", "w")
+    if verbose: print('Saving config file: ' + working_dir + binding_name + ".json")
+    f = open(working_dir + binding_name + ".json", "w")
     f.write(json.dumps(jdata, indent=2))
     f.close()
 
-    if verbose: print('Saving output file: ' + working_dir + binding_file + ".cpp")
-    f = open(working_dir + binding_file + ".cpp", "w")
-    f.write("/** " + binding_file + ".cpp   Generated " + str(date.today()) +
+    if verbose: print('Saving output file: ' + working_dir + binding_name + ".cpp")
+    f = open(working_dir + binding_name + ".cpp", "w")
+    f.write("/** " + binding_name + ".cpp   Generated " + str(date.today()) +
 '''
  *
  * Generated using ESP-Object-Messaging: tools/ui_bind.py. Do not edit manually.
@@ -256,13 +240,17 @@ def show_config():
     print('  working_dir: ' + working_dir)
     print('  all_symbols: ' + str(all_symbols))
     print('  include_file: ' + include_file + ' (' + working_dir + include_file + ')')
-    print('  binding_file: ' + binding_file + ' (' + working_dir + binding_file + ')')
-    print('    Settings: ' + working_dir + binding_file + '.json)')
-    print('    Configuration: ' + working_dir + binding_file + '.cpp)')
+    print('  binding_name: ' + binding_name + ' (' + working_dir + binding_name + ')')
+    print('    Settings: ' + working_dir + binding_name + '.json)')
+    print('    Configuration: ' + working_dir + binding_name + '.cpp)')
     print('  Constant prefix: ' + constant_prefix)
 
 def help():
     print(helptext)
+    print("Control type prefixes:")
+    for t in typemaps:
+        print('    ', t, typemaps[t][0])
+    print('')
     usage()
     show_config()
 
@@ -317,8 +305,8 @@ try:
             include_file = argv
             print ("Include file: " + include_file)
         elif arg in ("-b", "--binding_name"):
-            binding_file = argv
-            print ("Binding file: " + binding_file)
+            binding_name = argv
+            print ("Binding name: " + binding_name)
         elif arg in ("-p", "--prefix"):
             constant_prefix = argv
             print ("Constant prefix: " + constant_prefix)

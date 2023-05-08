@@ -15,6 +15,7 @@
 #include "ObjMsg.h"
 #include "stdio.h"
 // typedef ObjMsgDataInt ObjMsgServoData;
+typedef bool (*lvglVirtualComsumer)(LvglHost *host, ObjMsgData *data);
 
 class LvglHost : public ObjMsgHost
 {
@@ -32,10 +33,20 @@ public:
   {
   }
 
+  int addVirtualConsumer(const char *name, lvglVirtualComsumer consumer)
+  {
+    virtual_consume_map[name] = consumer;
+    // Note: event code is NOT used for a counsumer
+    // control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL };
+    // consume_map[name] = def;
+
+    return true;
+  }
+
   int addConsumer(const char *name, lv_obj_t *control, enum ControlType binding)
   {
     // Note: event code is NOT used for a counsumer
-    control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL };
+    control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL};
     consume_map[name] = def;
 
     return true;
@@ -66,136 +77,144 @@ public:
   {
     string strVal;
     int intVal;
-    control_reg_def_t *ctx = GetConsumer(msg->GetName());
-    if (ctx)
+    lvglVirtualComsumer vrt = GetVirtualConsumer(msg->GetName());
+    if (vrt)
     {
-      switch (ctx->type)
-      {
-      case ARC_CT:
-        if (msg->GetValue(intVal))
-        {
-          lv_arc_set_value(ctx->obj, intVal);
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      case BUTTON_CT:
-        if (msg->GetValue(intVal))
-        {
-          if (intVal)
-          {
-            lv_obj_add_state(ctx->obj, LV_STATE_PRESSED);
-          }
-          else
-          {
-            lv_obj_clear_state(ctx->obj, LV_STATE_PRESSED);
-          }
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      case LABEL_CT:
-        msg->GetValue(strVal);
-        lv_label_set_text(ctx->obj, strVal.c_str());
-        break;
-      case TEXTAREA_CT:
-        msg->GetValue(strVal);
-        //printf("setting %s to %s\n", msg->GetName().c_str(), strVal.c_str());
-        lv_textarea_set_text(ctx->obj, strVal.c_str());
-        break;
-      case CALENDAR_CT:
-        ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
-        return false;
-      case CHECKBOX_CT:
-        if (msg->GetValue(intVal))
-        {
-          if (intVal)
-          {
-            lv_obj_add_state(ctx->obj, LV_STATE_CHECKED);
-          }
-          else
-          {
-            lv_obj_clear_state(ctx->obj, LV_STATE_CHECKED);
-          }
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      case COLORWHEEL_CT:
-        if (msg->GetValue(intVal))
-        {
-          lv_color_t color;
-          color.full = intVal;
-          lv_colorwheel_set_rgb(ctx->obj, color);
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be (RGB encoded) integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      case DROPDOWN_CT:
-        msg->GetValue(strVal);
-        lv_dropdown_set_text(ctx->obj, strVal.c_str());
-        break;
-      case ROLLER_CT:
-        // TODO can't set selection from string 
-        //msg->GetValue(strVal);
-        //lv_roller_set_selected(ctx->obj, strVal.c_str());
-        //break;
-      case IMGBUTTON_CT:
-      case KEYBOARD_CT:
-        ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
-        return false;
-      case SLIDER_CT:
-        if (msg->GetValue(intVal))
-        {
-          lv_slider_set_value(ctx->obj, intVal, LV_ANIM_OFF);
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      case SWITCH_CT:
-        if (msg->GetValue(intVal))
-        {
-          if (intVal)
-          {
-            lv_obj_add_state(ctx->obj, LV_STATE_CHECKED);
-          }
-          else
-          {
-            lv_obj_clear_state(ctx->obj, LV_STATE_CHECKED);
-          }
-        }
-        else
-        {
-          ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
-          return false;
-        }
-        break;
-      default:
-        ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
-        return false;
-      }
+      return vrt(this, msg);
     }
     else
     {
-      ESP_LOGI(TAG, "consume name (%s) NOT REGISTERED", msg->GetName().c_str());
-      return false;
+      control_reg_def_t *ctx = GetConsumer(msg->GetName());
+      if (ctx)
+      {
+        switch (ctx->type)
+        {
+        case ARC_CT:
+          if (msg->GetValue(intVal))
+          {
+            lv_arc_set_value(ctx->obj, intVal);
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        case BUTTON_CT:
+          if (msg->GetValue(intVal))
+          {
+            if (intVal)
+            {
+              lv_obj_add_state(ctx->obj, LV_STATE_PRESSED);
+            }
+            else
+            {
+              lv_obj_clear_state(ctx->obj, LV_STATE_PRESSED);
+            }
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        case LABEL_CT:
+          msg->GetValue(strVal);
+          lv_label_set_text(ctx->obj, strVal.c_str());
+          break;
+        case TEXTAREA_CT:
+          msg->GetValue(strVal);
+          // printf("setting %s to %s\n", msg->GetName().c_str(), strVal.c_str());
+          lv_textarea_set_text(ctx->obj, strVal.c_str());
+          break;
+        case CALENDAR_CT:
+          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
+          return false;
+        case CHECKBOX_CT:
+          if (msg->GetValue(intVal))
+          {
+            if (intVal)
+            {
+              lv_obj_add_state(ctx->obj, LV_STATE_CHECKED);
+            }
+            else
+            {
+              lv_obj_clear_state(ctx->obj, LV_STATE_CHECKED);
+            }
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        case COLORWHEEL_CT:
+          if (msg->GetValue(intVal))
+          {
+            lv_color_t color;
+            color.full = intVal;
+            lv_colorwheel_set_rgb(ctx->obj, color);
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be (RGB encoded) integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        case DROPDOWN_CT:
+          msg->GetValue(strVal);
+          lv_dropdown_set_text(ctx->obj, strVal.c_str());
+          break;
+        case ROLLER_CT:
+          // TODO can't set selection from string
+          // msg->GetValue(strVal);
+          // lv_roller_set_selected(ctx->obj, strVal.c_str());
+          // break;
+        case IMGBUTTON_CT:
+        case KEYBOARD_CT:
+          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
+          return false;
+        case SLIDER_CT:
+          if (msg->GetValue(intVal))
+          {
+            lv_slider_set_value(ctx->obj, intVal, LV_ANIM_OFF);
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        case SWITCH_CT:
+          if (msg->GetValue(intVal))
+          {
+            if (intVal)
+            {
+              lv_obj_add_state(ctx->obj, LV_STATE_CHECKED);
+            }
+            else
+            {
+              lv_obj_clear_state(ctx->obj, LV_STATE_CHECKED);
+            }
+          }
+          else
+          {
+            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            return false;
+          }
+          break;
+        default:
+          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
+          return false;
+        }
+      }
+      else
+      {
+        ESP_LOGI(TAG, "consume name (%s) NOT REGISTERED", msg->GetName().c_str());
+        return false;
+      }
+      return true;
     }
-    return true;
   }
 
 protected:
@@ -236,7 +255,7 @@ protected:
           lv_calendar_date_t date;
           lv_calendar_get_pressed_date(ctx->obj, &date);
           sprintf(buffer, "{ \"year:\" %d, \"month:\" %d, \"day:\" %d }",
-            date.year, date.month,  date.day);
+                  date.year, date.month, date.day);
           data = ObjMsgDataString::create(
               host->origin_id, ctx->name, buffer, true);
           host->produce(data);
@@ -311,6 +330,18 @@ protected:
       return NULL;
     }
   }
+  lvglVirtualComsumer GetVirtualConsumer(string name)
+  {
+    unordered_map<string, lvglVirtualComsumer>::iterator found = virtual_consume_map.find(name);
+    if (found != virtual_consume_map.end())
+    {
+      return found->second;
+    }
+    else
+    {
+      return NULL;
+    }
+  }
 
   control_reg_def_t *GetProducer(lv_obj_t *control)
   {
@@ -325,5 +356,6 @@ protected:
     }
   }
   std::unordered_map<std::string, control_reg_def_t> consume_map;
+  std::unordered_map<std::string, lvglVirtualComsumer> virtual_consume_map;
   std::unordered_map<lv_obj_t *, control_reg_def_t> produce_map;
 };
