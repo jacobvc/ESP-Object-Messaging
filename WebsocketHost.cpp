@@ -104,19 +104,12 @@ esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
         ESP_LOGE(host->TAG, "httpd_ws_recv_frame failed with error %d", ret);
         return ret;
     }
-    
-    ObjMsgDataRef data = dataFactory.deserialize(host->origin_id, message);
-    if (data) {
-      host->produce(data);
-    }
+    host->produce(message);
+
     return ret;
 }
 
-
-//
-// / (http) URI handler
-//
-/***
+/*
  *      _      _    _          
  *     | |__  | |_ | |_  _ __  
  *     | '_ \ | __|| __|| '_ \ 
@@ -153,12 +146,11 @@ void WebsocketHost::stop_webserver()
 }
 
 /*
- *      _     _   _           __         _  __ _ 
- *     | |__ | |_| |_ _ __   / /_      _(_)/ _(_)
- *     | '_ \| __| __| '_ \ / /\ \ /\ / / | |_| |
- *     | | | | |_| |_| |_) / /  \ V  V /| |  _| |
- *     |_| |_|\__|\__| .__/_/    \_/\_/ |_|_| |_|
- *                   |_|                         
+ *               _   _ _
+ *      _      _(_)/ _(_)
+ *     \ \ /\ / / | |_| |
+ *      \ V  V /| |  _| |
+ *       \_/\_/ |_|_| |_|
  */
 
 void WebsocketHost::wifi_event_handler(void* arg, esp_event_base_t event_base, 
