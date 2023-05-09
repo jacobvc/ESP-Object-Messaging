@@ -25,12 +25,7 @@ BaseType_t ObjMsgTransport::receive(ObjMsgDataRef& data, TickType_t xTicksToWait
   // Return message reception result
   return result;
 }
-/*
-ObjMsgDataRef ObjMsg_deserialize(uint16_t origin, const char *json)
-{
-  return dataFactory.deserialize(origin, json);
-}
-*/
+
 ObjMsgTransport::ObjMsgTransport(uint16_t message_queue_depth)
 {
     message_queue = xQueueCreate(message_queue_depth, sizeof(ObjMessage*));
