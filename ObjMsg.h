@@ -230,10 +230,11 @@ public:
   }
   virtual BaseType_t produce(const char *message)
   {
-   ObjMsgDataRef data = dataFactory.deserialize(origin_id, message);
+    ObjMsgDataRef data = dataFactory.deserialize(origin_id, message);
     if (data) {
-      produce(data);
+      return produce(data);
     }
+    return -1;
   }
   virtual bool start() = 0;
 };
