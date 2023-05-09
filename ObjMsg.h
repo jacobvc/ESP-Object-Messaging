@@ -234,7 +234,7 @@ public:
     if (data) {
       return produce(data);
     }
-    return pdFail;
+    return false;
   }
   virtual bool start() = 0;
 };
