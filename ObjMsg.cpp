@@ -7,7 +7,7 @@ ObjMsgDataFactory dataFactory;
 
 BaseType_t ObjMsgTransport::send(ObjMsgDataRef data)
 {
-  // Create message object to send data
+  // Create message object to send shared_ptr data
   ObjMessage *msg = new ObjMessage(data);
   // and send it
   return xQueueSend(message_queue, &msg, 0);
@@ -18,7 +18,7 @@ BaseType_t ObjMsgTransport::receive(ObjMsgDataRef& data, TickType_t xTicksToWait
   ObjMessage *msg;
   BaseType_t result = xQueueReceive(message_queue, &msg, xTicksToWait);
   if (result) {
-    // Received a message. Give caller reference to its data and delete the message object
+    // Received a message. Give caller reference to its data and delete the shared_ptr message object
     data = msg->data();
     delete msg;
   }

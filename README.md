@@ -6,8 +6,6 @@ components into an application that utilizes external access via connectivity
 that normally is text based such as http, etc, and other messaging that 
 typically might utilize json.
 
-## ObjMsg
-
 ## ObjMsgData
 ObjMsgData virtual base class
 
