@@ -1,25 +1,29 @@
 # ESP-Object-Messaging
 Object oriented messaging for ESP32 with JSON encoding
 
-ObjMsg is intended to support relativly simple integration of
-components into an application that utilizes external access via connectivity
-that normally is text based such as http, etc, and other messaging that 
-typically might utilize json.
+Support for relativly simple integration of components into an application 
+that operates based on exchanging messages containing C++ objects.
+
+The content is conveyed as ObjMsgDataRef, a std:shared_ptr to a ObjMsgData
+derived class. ObjMsgData classes are generally implemented using the
+templatized ObjMsgDataT class.
+
+The transport mechanism is a ObjMsgTransport object which supports Send() and Receive().
+
+Information is produced and transported using ObjMsgHost::Produce(), received (at a single point) using ObjMsgTransport::Receive(), and distributed to desired endpoints using ObjMsgHost::Consume().
 
 ## ObjMsgData
-ObjMsgData virtual base class
+All data is exchanged using objects derived from ObjMsgData base class
 
-All data is exchanged using objects of the ObjMsgData base class
+Encodes origin, endpoint name, and binary data with JSON serialization
+and deserialization.
 
-Identifies origin, endpoint name, and contains
-binary data with JSON serialization and deserialization.
-
+## ObjMsgDataT
 Abstract base class for templatized ObjMsgDataT. Intended to always be
 instantiated using a ObjMsgDataRef (a std::shared_ptr)
 
-## ObjMsgDataT
-
 ## ObjMsgDataRef
+A std::shared_ptr encoding ObjMsgData.
 
 ## ObjMsgTransport
 ObjMsgTransport intantiates a freertos 'message_queue' which exchanges
@@ -37,9 +41,8 @@ Each library component may produce content, and sends it by invoking
 this->produce() identifying itself as origin and passing the produced
 content as a name / value pair.
 
- Each component may also consume content, and  must support that by implementing
- consume() which is typically called by the application (controller) to
- deliver ObjMsgData.
+ Each component may also consume content, and  must support that by implementing consume() which is typically called by the application 
+ (controller) to deliver ObjMsgData.
 
 ## ObjMsgDataFactory
  The ObjMsgDataFactory supports creation of a ObjMsgData object based on recevied data.
@@ -50,4 +53,4 @@ content as a name / value pair.
     dataFactory.registerClass(my_origin, "my_name", ObjMsgDataInt32::create);
 
  Will create a ObjMsgDataInt32 object when data.get() is called for
- JSON data containing "name":"my_data".
+ JSON data containing "name":"my_name".

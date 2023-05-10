@@ -2,6 +2,7 @@
 *.d
 
 # Output directories
+.vscode
 build/ 
 
 # Compiled Object files
