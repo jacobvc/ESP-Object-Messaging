@@ -46,7 +46,7 @@ public:
 
     joy.btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
-    dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::create);
+    dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::Create);
 
     return 0;
   }
@@ -139,7 +139,7 @@ protected:
         {
           if (ep->Measure(&js))
           {
-            ObjMsgDataRef data = ObjMsgJoystickData::create(
+            ObjMsgDataRef data = ObjMsgJoystickData::Create(
               ep->origin_id, js.name.c_str(), js.sample);
             ep->produce(data);
           }

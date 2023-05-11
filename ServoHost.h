@@ -73,7 +73,7 @@ public:
 
   int add(const char *name, gpio_num_t pin)
   {
-    dataFactory.registerClass(origin_id, name, ObjMsgServoData::create);
+    dataFactory.registerClass(origin_id, name, ObjMsgServoData::Create);
 
     ESP_LOGI(TAG, "Create comparator and generator from the operator");
     mcpwm_cmpr_handle_t comparator = NULL;

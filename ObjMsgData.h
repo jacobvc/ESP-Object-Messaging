@@ -51,7 +51,7 @@ public:
   string &GetName() { return name; }
   /** Populate value from the contents of 'json'
    */
-  virtual bool deserializeValue(cJSON *json) = 0;
+  virtual bool DeserializeValue(cJSON *json) = 0;
 
   /** serialize this object into a JSON string */
   virtual int Serialize(string &json) = 0;
@@ -134,18 +134,18 @@ public:
     // ESP_LOGI(CORE_TAG, "ObjMsgDataInt destructed");
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name, int value)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name, int value)
   {
     return std::make_shared<ObjMsgDataInt>(origin, name, value);
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataInt>(origin, name, 0);
   }
 
   // Common implementation for integer values
-  bool deserializeValue(cJSON *json)
+  bool DeserializeValue(cJSON *json)
   {
     cJSON *valueObj = cJSON_GetObjectItem(json, "value");
     if (valueObj)
@@ -200,16 +200,16 @@ public:
     // ESP_LOGI(CORE_TAG, "ObjMsgDataFloat destructed");
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataFloat>(origin, name, 0);
   }
-  static ObjMsgDataRef create(uint16_t origin, char const *name, double value)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name, double value)
   {
     return std::make_shared<ObjMsgDataFloat>(origin, name, value);
   }
 
-  bool deserializeValue(cJSON *json)
+  bool DeserializeValue(cJSON *json)
   {
     cJSON *valueObj = cJSON_GetObjectItem(json, "value");
     if (valueObj)
@@ -273,17 +273,17 @@ public:
     // ESP_LOGI(CORE_TAG, "ObjMsgDataString destructed");
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name, const char *value, bool asJson = false)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name, const char *value, bool asJson = false)
   {
     return std::make_shared<ObjMsgDataString>(origin, name, value, asJson);
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataString>(origin, name, "");
   }
 
-  bool deserializeValue(cJSON *json)
+  bool DeserializeValue(cJSON *json)
   {
     cJSON *valueObj = cJSON_GetObjectItem(json, "value");
     if (valueObj)

@@ -130,7 +130,7 @@ public:
       anyChangeEvents = true;
     }
 
-    dataFactory.registerClass(origin_id, name, ObjMsgAdcData::create);
+    dataFactory.registerClass(origin_id, name, ObjMsgAdcData::Create);
 
     return tmp;
   }
@@ -195,7 +195,7 @@ protected:
           ep->Measure(&js);
           if (abs(value - js.GetValue()) > js.hysteresis)
           {
-            ObjMsgDataRef data = ObjMsgAdcData::create(
+            ObjMsgDataRef data = ObjMsgAdcData::Create(
               ep->origin_id, it->first.c_str(), js.GetValue());
             ep->produce(data);
           }

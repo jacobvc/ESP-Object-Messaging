@@ -35,17 +35,17 @@ public:
     // ESP_LOGI(CORE_TAG, "ObjMsgJoystickData destructed");
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name, joystick_sample_t value)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name, joystick_sample_t value)
   {
     return std::make_shared<ObjMsgJoystickData>(origin, name, value);
   }
 
-  static ObjMsgDataRef create(uint16_t origin, char const *name)
+  static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgJoystickData>(origin, name);
   }
 
-  bool deserializeValue(cJSON *json)
+  bool DeserializeValue(cJSON *json)
   {
     cJSON *item = cJSON_GetObjectItemCaseSensitive(json, "value");
     value.x = cJSON_GetObjectItem(item, "x")->valueint;

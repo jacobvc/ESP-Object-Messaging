@@ -182,7 +182,7 @@ void WebsocketHost::ip_connect_handler(void* arg, esp_event_base_t event_base,
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
     ESP_LOGI(host->TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(buffer, IPSTR, IP2STR(&event->ip_info.ip));
-    host->produce(ObjMsgDataString::create(host->origin_id, "__my_ip__", buffer));
+    host->produce(ObjMsgDataString::Create(host->origin_id, "__my_ip__", buffer));
 
     if (server == NULL) {
         ESP_LOGI(host->TAG, "Starting webserver");
@@ -215,15 +215,15 @@ void WebsocketHost::wifi_scan(void)
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
     ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-    produce(ObjMsgDataString::create(origin_id, "__APSCAN__", "begin"));
+    produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "begin"));
 
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-        produce(ObjMsgDataString::create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
+        produce(ObjMsgDataString::Create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
         ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
         ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
         ESP_LOGI(TAG, "Channel \t%d", ap_info[i].primary);
     }
-    produce(ObjMsgDataString::create(origin_id, "__APSCAN__", "end"));
+    produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "end"));
 }
 
 void WebsocketHost::blink_task(void *arg)

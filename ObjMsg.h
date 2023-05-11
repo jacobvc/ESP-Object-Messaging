@@ -1,36 +1,4 @@
 /** @file
- *
- * ObjMsg is intended to support relativly simple integration of
- * components into an application that utilizes external access via connectivity that
- * normally is text based such as http, etc, and other messaging that typically might
- * utilize json.
- *
- * ObjMsgTransport intantiates a freertos 'message_queue' which exchanges
- * ObjMessage's, carrying ObjMsgData.
- *
- * ObjMsgHost implements produce() which attaches ObjMsgData to a new ObjMessage and
- * sends it using ObjMsgTransport.
- *
- * The application receives produced ObjMsgData by calling transport.receive()
- * which waits up to a specified time for a message, deletes the message (after
- * removing the attached data), and invokes consume() on intended destinations.
- *
- * Each library component may produce content, and sends it by invoking this->produce()
- * identifying itself as origin and passing the produced content as a name / value pair.
- *
- * Each component may also consume content, and  must support that by implementing
- * consume() which is typically called by the application (controller) to
- * deliver ObjMsgData.
- *
- * The ObjMsgDataFactory supports creation of a ObjMsgData object based on recevied data.
- * The initial implementation supports only JSON data. Each endpoint supporting
- * object creation must register with the factory, this example (for data of
- * type ObjMsgDataInt32):
- *
- *    dataFactory.registerClass(my_origin, "my_name", ObjMsgDataInt32::create);
- *
- * Will create a ObjMsgDataInt32 object when data.get() is called for
- * JSON data containing "name":"my_data".
  */
 #pragma once
 
@@ -61,8 +29,7 @@ using namespace std;
  *                                                  |__/
  */
 
-/** This Factory creates ObjMsgDataRef from JSON
- * data into for specified data 'name'.
+/** Factory to create ObjMsgDataRef from JSON data for registered data 'name'.
  */
 class ObjMsgDataFactory
 {
@@ -74,16 +41,16 @@ public:
   {
     return dataClasses.insert(make_pair(name, fn)).second;
   }
-  /** Create ObjMsgData object for endpoint 'name' */
-  ObjMsgDataRef create(uint16_t origin, char const *name)
+  /** Create ObjMsgDataRef object for endpoint 'name' */
+  ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     ObjMsgDataRef (*fn)(uint16_t, char const *) = dataClasses[name];
     if (fn)
       return fn(origin, name);
     return NULL;
   }
-  /** Create ObjMsgData object and populate it based on 'json' content */
-  ObjMsgDataRef deserialize(uint16_t origin, char const *json)
+  /** Create ObjMsgDataRef object and populate it based on 'json' content */
+  ObjMsgDataRef Deserialize(uint16_t origin, char const *json)
   {
     ObjMsgDataRef data = NULL;
 
@@ -93,27 +60,27 @@ public:
       cJSON *jsonName = cJSON_GetObjectItemCaseSensitive(root, "name");
       if (jsonName)
       {
-        data = create(origin, cJSON_GetStringValue(jsonName));
+        data = Create(origin, cJSON_GetStringValue(jsonName));
         if (data)
         {
-          if (data.get()->deserializeValue(root))
+          if (data.get()->DeserializeValue(root))
           {
             cJSON_Delete(root);
             return data;
           }
           else
           {
-            ESP_LOGE("deserialize", "Unable to parse value: %s", json);
+            ESP_LOGE("Deserialize", "Unable to parse value: %s", json);
           }
         }
         else
         {
-          printf("create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName),
+          printf("Create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName),
                  cJSON_Print(cJSON_GetObjectItem(root, "value")));
           // If not registered, deliver as JSON object carried ib string
-          data = ObjMsgDataString::create(origin, cJSON_GetStringValue(jsonName),
+          data = ObjMsgDataString::Create(origin, cJSON_GetStringValue(jsonName),
                                           cJSON_Print(cJSON_GetObjectItem(root, "value")), true);
-          ESP_LOGI("deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
+          ESP_LOGI("Deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
 
           cJSON_Delete(root);
           return data;
@@ -121,13 +88,13 @@ public:
       }
       else
       {
-        ESP_LOGE("deserialize", "JSON has no name field: %s", json);
+        ESP_LOGE("Deserialize", "JSON has no name field: %s", json);
       }
       cJSON_Delete(root);
     }
     else
     {
-      ESP_LOGE("deserialize", "JSON malformed: %s", json);
+      ESP_LOGE("Deserialize", "JSON malformed: %s", json);
     }
 
     return NULL;
@@ -240,7 +207,7 @@ public:
    */
   virtual BaseType_t produce(const char *message)
   {
-    ObjMsgDataRef data = dataFactory.deserialize(origin_id, message);
+    ObjMsgDataRef data = dataFactory.Deserialize(origin_id, message);
     if (data)
     {
       return produce(data);
