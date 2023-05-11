@@ -27,7 +27,7 @@ public:
     anyChangeEvents = false;
   }
 
-  int add(string name, ObjMsgSample mode, 
+  int Add(string name, ObjMsgSample mode, 
     adc_channel_t ad_x, adc_channel_t ad_y, gpio_num_t btn)
   {
     joysticks[name] = Joystick(name, mode);
@@ -46,21 +46,22 @@ public:
 
     joy.btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
-    dataFactory.registerClass(origin_id, name, ObjMsgJoystickData::Create);
+    dataFactory.RegisterClass(origin_id, name, ObjMsgJoystickData::Create);
 
     return 0;
   }
 
-  bool start()
+  bool Start()
   {
     if (anyChangeEvents) {
-      xTaskCreate(task, "joystick_task", CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE, 
+      xTaskCreate(Task, "joystick_task", CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE, 
         this, 10, NULL);
     }
 
     return true;
   }
-  bool center(string name, int x, int y)
+
+  bool Center(string name, int x, int y)
   {
     Joystick *js = GetJoystick(name);
     if (js)
@@ -123,7 +124,7 @@ protected:
     }
   }
 
-  static void task(void *arg)
+  static void Task(void *arg)
   {
     JoystickHost *ep = (JoystickHost *)arg;
 
@@ -141,7 +142,7 @@ protected:
           {
             ObjMsgDataRef data = ObjMsgJoystickData::Create(
               ep->origin_id, js.name.c_str(), js.sample);
-            ep->produce(data);
+            ep->Produce(data);
           }
         }
       }

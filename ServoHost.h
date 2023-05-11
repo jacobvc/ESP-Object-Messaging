@@ -71,9 +71,9 @@ public:
       + SERVO_MIN_PW_US;
   }
 
-  int add(const char *name, gpio_num_t pin)
+  int Add(const char *name, gpio_num_t pin)
   {
-    dataFactory.registerClass(origin_id, name, ObjMsgServoData::Create);
+    dataFactory.RegisterClass(origin_id, name, ObjMsgServoData::Create);
 
     ESP_LOGI(TAG, "Create comparator and generator from the operator");
     mcpwm_cmpr_handle_t comparator = NULL;
@@ -115,7 +115,7 @@ public:
     return 0;
   }
 
-  bool start()
+  bool Start()
   {
     ESP_LOGI(TAG, "Enable and start timer");
     ESP_ERROR_CHECK(mcpwm_timer_enable(timer));
@@ -124,7 +124,7 @@ public:
     return true;
   }
 
-  bool consume(ObjMsgData *data)
+  bool Consume(ObjMsgData *data)
   {
     ObjMsgServoData *point = static_cast<ObjMsgServoData *>(data);
     if (point)

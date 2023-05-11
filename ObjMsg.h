@@ -37,7 +37,7 @@ class ObjMsgDataFactory
 
 public:
   /** register object creator function 'fn' to create object for endpoint 'name' */
-  bool registerClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *))
+  bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *))
   {
     return dataClasses.insert(make_pair(name, fn)).second;
   }
@@ -138,8 +138,8 @@ class ObjMsgTransport
 
 public:
   ObjMsgTransport(uint16_t message_queue_depth);
-  BaseType_t send(ObjMsgDataRef data);
-  BaseType_t receive(ObjMsgDataRef &data, TickType_t xTicksToWait);
+  BaseType_t Send(ObjMsgDataRef data);
+  BaseType_t Receive(ObjMsgDataRef &data, TickType_t xTicksToWait);
 };
 
 /*
@@ -152,15 +152,15 @@ public:
 
 /** Sampling configuration.
  *  For CHANGE_EVENT, the host implements a mechanism to detect
- *  changes and produce() a message when that occurs
+ *  changes and Produce() a message when that occurs
  */
 enum ObjMsgSample
 {
   POLLING,     /**< Manual sampling */
-  CHANGE_EVENT /**< Detect changes and produce() message upon change */
+  CHANGE_EVENT /**< Detect changes and Produce() message upon change */
 };
 
-/** virtual base class - Host a resource and produce() / consume() it's content
+/** virtual base class - Host a resource and Produce() / Consume() it's content
  *
  */
 class ObjMsgHost
@@ -186,7 +186,7 @@ public:
    *
    * Returns true if successfully consumed, false if not registered as consumer or unab le to use data
    */
-  virtual bool consume(ObjMsgData *data) { return false; }
+  virtual bool Consume(ObjMsgData *data) { return false; }
 
   /** Produce provided data
    *
@@ -194,9 +194,9 @@ public:
    *
    * <returns> true if successfully produced / else false
    */
-  virtual BaseType_t produce(ObjMsgDataRef data)
+  virtual BaseType_t Produce(ObjMsgDataRef data)
   {
-    return transport.send(data);
+    return transport.Send(data);
   }
 
   /** Produce data created by parsing a JSON encoded message
@@ -205,16 +205,16 @@ public:
    *
    * <returns> true if successfully produced / else false
    */
-  virtual BaseType_t produce(const char *message)
+  virtual BaseType_t Produce(const char *message)
   {
     ObjMsgDataRef data = dataFactory.Deserialize(origin_id, message);
     if (data)
     {
-      return produce(data);
+      return Produce(data);
     }
     return false;
   }
 
   /** Start the change detection operations */
-  virtual bool start() = 0;
+  virtual bool Start() = 0;
 };

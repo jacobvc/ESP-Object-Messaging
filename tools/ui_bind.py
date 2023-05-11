@@ -227,13 +227,13 @@ def write_function(f, variable, name, produce, consume, type, event):
         print()
     body = '("' + name + '", ' + variable + ", " + type 
     if produce: 
-        f.write('    host.addProducer' + body + ", " + event + ");\n")
+        f.write('    host.AddProducer' + body + ", " + event + ");\n")
     elif verbose:
-        f.write('    // addProducer' + body + ", " + event + ");\n")
+        f.write('    // AddProducer' + body + ", " + event + ");\n")
     if consume: 
-        f.write('    host.addConsumer' + body + ");\n")
+        f.write('    host.AddConsumer' + body + ");\n")
     elif verbose:
-        f.write('    // addConsumer' + body + ");\n")
+        f.write('    // AddConsumer' + body + ");\n")
 
 def show_config():
     print('Settings')

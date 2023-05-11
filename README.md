@@ -45,14 +45,14 @@ Receive() releases data from the next enqueued message to the caller,
 then delete the message itself
 
 ## ObjMsgHost
-ObjMsgHost implements produce() which attaches ObjMsgData to a new ObjMessage and
+ObjMsgHost implements Produce() which attaches ObjMsgData to a new ObjMessage and
 sends it using ObjMsgTransport.
 
 Each library host may produce content, and sends it by invoking 
-this->produce(), identifying itself as origin and passing the produced
+this->Produce(), identifying itself as origin and passing the produced
 content as a ObjMsgDataRef.
 
- Each host may also consume content, and  must support that by implementing consume() which is typically called by the application 
+ Each host may also consume content, and  must support that by implementing Consume() which is typically called by the application 
  (controller) to deliver ObjMsgData.
 
 ## ObjMsgDataFactory
@@ -60,7 +60,7 @@ content as a ObjMsgDataRef.
  object creation must register with the factory, this example (for data of
  type ObjMsgDataInt32):
 ```
-    dataFactory.registerClass(my_origin, "my_name", ObjMsgDataInt32::Create);
+    dataFactory.RegisterClass(my_origin, "my_name", ObjMsgDataInt32::Create);
 ```
  Will create a ObjMsgDataInt32 object when data.get() is called for
  JSON data containing "name":"my_name".

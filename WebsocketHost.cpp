@@ -29,7 +29,7 @@ httpd_handle_t server;
 //
 // async send function broadcast worker)
 //
-void WebsocketHost::ws_async_broadcast(void *arg)
+void WebsocketHost::WebSockAsyncBroadcast(void *arg)
 {
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(ws_pkt));
@@ -62,15 +62,15 @@ void WebsocketHost::ws_async_broadcast(void *arg)
     free(arg);
 }
 
-bool WebsocketHost::consume(ObjMsgData *data)
+bool WebsocketHost::Consume(ObjMsgData *data)
 {
   if (server) {
     string str;
     data->Serialize(str);
     const char *json = str.c_str();
-    int err = httpd_queue_work(server, ws_async_broadcast, strdup(json));
+    int err = httpd_queue_work(server, WebSockAsyncBroadcast, strdup(json));
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "consume(%s)=>%d", json, err);
+        ESP_LOGE(TAG, "Consume(%s)=>%d", json, err);
     }
     return true;
   }
@@ -82,7 +82,7 @@ bool WebsocketHost::consume(ObjMsgData *data)
 //
 // /ws (websocket) URI handler
 //
-esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
+esp_err_t WebsocketHost::WebSockMsgHandler(httpd_req_t *req)
 {
     WebsocketHost *host = (WebsocketHost *)req->user_ctx;
 
@@ -104,7 +104,7 @@ esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
         ESP_LOGE(host->TAG, "httpd_ws_recv_frame failed with error %d", ret);
         return ret;
     }
-    host->produce(message);
+    host->Produce(message);
 
     return ret;
 }
@@ -120,7 +120,7 @@ esp_err_t WebsocketHost::ws_message_handler(httpd_req_t *req)
 //
 // Server operation
 //
-httpd_handle_t WebsocketHost::start_webserver(void)
+httpd_handle_t WebsocketHost::StartWebserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
@@ -138,7 +138,7 @@ httpd_handle_t WebsocketHost::start_webserver(void)
     return NULL;
 }
 
-void WebsocketHost::stop_webserver()
+void WebsocketHost::StopWebserver()
 {
     // Stop the httpd server
     httpd_stop(server);
@@ -153,7 +153,7 @@ void WebsocketHost::stop_webserver()
  *       \_/\_/ |_|_| |_|
  */
 
-void WebsocketHost::wifi_event_handler(void* arg, esp_event_base_t event_base, 
+void WebsocketHost::WifiEventHandler(void* arg, esp_event_base_t event_base, 
                                int32_t event_id, void* event_data)
 {
     WebsocketHost *host = (WebsocketHost *)arg;
@@ -167,14 +167,14 @@ void WebsocketHost::wifi_event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGI(host->TAG, "Disconnected. Connecting to the AP again...");
         if (server) {
             ESP_LOGI(host->TAG, "Stopping webserver");
-            host->stop_webserver();
+            host->StopWebserver();
        }
         esp_wifi_connect();
         break;
     }
 }
 
-void WebsocketHost::ip_connect_handler(void* arg, esp_event_base_t event_base, 
+void WebsocketHost::IpConnectHandler(void* arg, esp_event_base_t event_base, 
                             int32_t event_id, void* event_data)
 {
     char buffer[30];
@@ -182,11 +182,11 @@ void WebsocketHost::ip_connect_handler(void* arg, esp_event_base_t event_base,
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
     ESP_LOGI(host->TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(buffer, IPSTR, IP2STR(&event->ip_info.ip));
-    host->produce(ObjMsgDataString::Create(host->origin_id, "__my_ip__", buffer));
+    host->Produce(ObjMsgDataString::Create(host->origin_id, "__my_ip__", buffer));
 
     if (server == NULL) {
         ESP_LOGI(host->TAG, "Starting webserver");
-        host->start_webserver();
+        host->StartWebserver();
     }
     /* Signal to continue execution */
     xEventGroupSetBits(host->wifi_event_group, WIFI_CONNECTED_EVENT);
@@ -204,7 +204,7 @@ void WebsocketHost::ip_connect_handler(void* arg, esp_event_base_t event_base,
 #define DEFAULT_SCAN_LIST_SIZE 20
 
 /* Initialize Wi-Fi as sta and set scan method */
-void WebsocketHost::wifi_scan(void)
+void WebsocketHost::WifiScan(void)
 {
     uint16_t number = DEFAULT_SCAN_LIST_SIZE;
     wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
@@ -215,18 +215,18 @@ void WebsocketHost::wifi_scan(void)
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
     ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-    produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "begin"));
+    Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "begin"));
 
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-        produce(ObjMsgDataString::Create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
+        Produce(ObjMsgDataString::Create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
         ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
         ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
         ESP_LOGI(TAG, "Channel \t%d", ap_info[i].primary);
     }
-    produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "end"));
+    Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "end"));
 }
 
-void WebsocketHost::blink_task(void *arg)
+void WebsocketHost::BlinkTask(void *arg)
 {
     for (;;) {
 #ifdef BUILTIN_LED      
@@ -274,16 +274,16 @@ WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin)
     return true;
   }
 
-  bool WebsocketHost::start()
+  bool WebsocketHost::Start()
   {
     bool configured = false;
     // Init websocket handler
-    Add("/ws", ws_message_handler, true);
+    Add("/ws", WebSockMsgHandler, true);
 
-    TaskHandle_t blink_taskHandle;
+    TaskHandle_t blinkTaskHandle;
 
-    xTaskCreate(blink_task, "blink_task", CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE, 
-      NULL, 10, &blink_taskHandle);
+    xTaskCreate(BlinkTask, "Blink Task", CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE, 
+      NULL, 10, &blinkTaskHandle);
     
     /* Initialize network interface */
     ESP_ERROR_CHECK(esp_netif_init());
@@ -298,8 +298,8 @@ WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin)
     /* Register event handlers to stop the server when Wi-Fi or Ethernet is disconnected,
      * and re-start it upon connection.
      */
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_connect_handler, this));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, this));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &IpConnectHandler, this));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiEventHandler, this));
 
    /* Get Wi-Fi Station configuration */
    // AFTER esp_wifi_init
@@ -325,7 +325,7 @@ WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin)
     /* Wait for Wi-Fi connection */
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, false, true, portMAX_DELAY);
 
-    vTaskDelete(blink_taskHandle);
+    vTaskDelete(blinkTaskHandle);
 #ifdef BUILTIN_LED      
     gpio_set_level(BUILTIN_LED, 0);
 #endif    

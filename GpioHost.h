@@ -77,7 +77,7 @@ public:
       // TODO make sure that IS_INPUT and at least one edge is also specified
       anyChangeEvents = true;
     }
-    dataFactory.registerClass(origin_id, name, ObjMsgGpioData::Create);
+    dataFactory.RegisterClass(origin_id, name, ObjMsgGpioData::Create);
 
     gpio_config_t io_conf;
 
@@ -102,13 +102,13 @@ public:
     return tmp;
   }
 
-  bool consume(ObjMsgData *data)
+  bool Consume(ObjMsgData *data)
   {
     // consider NOT IS_INPUT_GF
     return false;
   }
 
-  bool start()
+  bool Start()
   {
     if (anyChangeEvents)
     {
@@ -190,7 +190,7 @@ protected:
         if (((port->changed > 0) && (port->flags & POS_EVENT_GF)) || ((port->changed < 0) && (port->flags & NEG_EVENT_GF)))
         {
           ObjMsgDataRef point = ObjMsgGpioData::Create(host->origin_id, port->name.c_str(), port->value);
-          host->produce(point);
+          host->Produce(point);
         }
       }
     }

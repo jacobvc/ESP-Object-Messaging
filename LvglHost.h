@@ -33,7 +33,7 @@ public:
   {
   }
 
-  int addVirtualConsumer(const char *name, lvglVirtualComsumer consumer)
+  int AddVirtualConsumer(const char *name, lvglVirtualComsumer consumer)
   {
     virtual_consume_map[name] = consumer;
     // Note: event code is NOT used for a counsumer
@@ -43,7 +43,7 @@ public:
     return true;
   }
 
-  int addConsumer(const char *name, lv_obj_t *control, enum ControlType binding)
+  int AddConsumer(const char *name, lv_obj_t *control, enum ControlType binding)
   {
     // Note: event code is NOT used for a counsumer
     control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL};
@@ -51,7 +51,7 @@ public:
 
     return true;
   }
-  int addProducer(const char *name, lv_obj_t *control, enum ControlType binding, lv_event_code_t eventCode)
+  int AddProducer(const char *name, lv_obj_t *control, enum ControlType binding, lv_event_code_t eventCode)
   {
     control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = eventCode};
     produce_map[control] = def;
@@ -63,17 +63,17 @@ public:
     return true;
   }
 
-  bool start()
+  bool Start()
   {
     return true;
   }
 
-  BaseType_t produce(ObjMsgDataRef data)
+  BaseType_t Produce(ObjMsgDataRef data)
   {
-    return transport.send(data);
+    return transport.Send(data);
   }
 
-  bool consume(ObjMsgData *msg)
+  bool Consume(ObjMsgData *msg)
   {
     string strVal;
     int intVal;
@@ -243,22 +243,22 @@ protected:
         case ARC_CT:
           data = ObjMsgDataInt::Create(
               host->origin_id, ctx->name, lv_arc_get_value(ctx->obj));
-          host->produce(data);
+          host->Produce(data);
           break;
         case BUTTON_CT:
           data = ObjMsgDataInt::Create(host->origin_id, ctx->name,
                                        (lv_obj_get_state(ctx->obj) & LV_STATE_PRESSED) ? 1 : 0);
-          host->produce(data);
+          host->Produce(data);
           break;
         case LABEL_CT:
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, lv_label_get_text(ctx->obj));
-          host->produce(data);
+          host->Produce(data);
           break;
         case TEXTAREA_CT:
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, lv_textarea_get_text(ctx->obj));
-          host->produce(data);
+          host->Produce(data);
           break;
         case CALENDAR_CT:
         {
@@ -269,26 +269,26 @@ protected:
                   date.year, date.month - 1, date.day);
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, buffer, true);
-          host->produce(data);
+          host->Produce(data);
           break;
         }
         case CHECKBOX_CT:
           data = ObjMsgDataInt::Create(host->origin_id, ctx->name,
                                        (lv_obj_get_state(ctx->obj) & LV_STATE_CHECKED) ? 1 : 0);
-          host->produce(data);
+          host->Produce(data);
           break;
         case COLORWHEEL_CT:
         {
           lv_color_t color = lv_colorwheel_get_rgb(ctx->obj);
           data = ObjMsgDataInt::Create(
               host->origin_id, ctx->name, color.full);
-          host->produce(data);
+          host->Produce(data);
           break;
         }
         case DROPDOWN_CT:
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, lv_dropdown_get_text(ctx->obj));
-          host->produce(data);
+          host->Produce(data);
           break;
         case ROLLER_CT:
         {
@@ -296,7 +296,7 @@ protected:
           lv_roller_get_selected_str(ctx->obj, buf, sizeof(buf));
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, buf);
-          host->produce(data);
+          host->Produce(data);
           break;
         }
         case IMGBUTTON_CT:
@@ -306,12 +306,12 @@ protected:
         case SLIDER_CT:
           data = ObjMsgDataInt::Create(
               host->origin_id, ctx->name, lv_slider_get_value(ctx->obj));
-          host->produce(data);
+          host->Produce(data);
           break;
         case SWITCH_CT:
           data = ObjMsgDataInt::Create(
               host->origin_id, ctx->name, lv_obj_has_state(ctx->obj, LV_STATE_CHECKED) ? 1 : 0);
-          host->produce(data);
+          host->Produce(data);
           break;
         default:
           ESP_LOGE(host->TAG, "produce type (%d) NOT IMPLEMENTED", ctx->type);
