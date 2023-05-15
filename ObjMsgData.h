@@ -16,11 +16,35 @@ using namespace std;
  *      \___/|_.__// |_|  |_/__|__, |___/\__,_|\__\__,_|
  *               |__/          |___/
  */
-
 /**
  */
-class ObjMsgData; // Forward reference
+class ObjMsgData;
 typedef shared_ptr<ObjMsgData> ObjMsgDataRef;
+
+/*
+ *      ___       _          ___        _
+ *     |   \ __ _| |_ __ _  | __|_ _ __| |_ ___ _ _ _  _
+ *     | |) / _` |  _/ _` | | _/ _` / _|  _/ _ \ '_| || |
+ *     |___/\__,_|\__\__,_| |_|\__,_\__|\__\___/_|  \_, |
+ *                                                  |__/
+ */
+
+/** Factory to create ObjMsgDataRef from JSON data for registered data 'name'.
+ */
+class ObjMsgDataFactory
+{
+  unordered_map<string, ObjMsgDataRef (*)(uint16_t, char const *)> dataClasses;
+
+public:
+  /** register object creator function 'fn' to create object for endpoint 'name' */
+  bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *));
+
+  /** Create ObjMsgDataRef object for endpoint 'name' */
+  ObjMsgDataRef Create(uint16_t origin, char const *name);
+
+  /** Create ObjMsgDataRef object and populate it based on 'json' content */
+  ObjMsgDataRef Deserialize(uint16_t origin, char const *json);
+};
 
 /** ObjMsgData virtual base class
  *
@@ -40,8 +64,10 @@ class ObjMsgData
   /** Endpoint name */
   string name;
   string TAG;
-  
+
 public:
+  static ObjMsgDataFactory dataFactory;
+
   /** MANDATORY vitrual destructor */
   ObjMsgData(string tag) : TAG(tag) { }
   virtual ~ObjMsgData() {}
@@ -49,6 +75,16 @@ public:
   uint16_t GetOrigin() { return origin; }
   bool IsFrom(int16_t origin) { return this->origin == origin; }
   string &GetName() { return name; }
+
+  static ObjMsgDataRef Deserialize(uint16_t origin, char const *json) {
+    return dataFactory.Deserialize(origin, json);
+  }
+
+  static bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *))
+  {
+    return dataFactory.RegisterClass(origin, name, fn);
+  }
+
   /** Populate value from the contents of 'json'
    */
   virtual bool DeserializeValue(cJSON *json) = 0;
@@ -139,6 +175,7 @@ class ObjMsgDataT : public ObjMsgData
 protected:
   /** The (template specific) binary value */
   T value;
+
   /** Constructor */
   ObjMsgDataT(uint16_t origin, char const *name) 
 #ifdef RESOLVE_TYPES_FOR_LOGGING
@@ -388,3 +425,4 @@ public:
     return true;
   }
 };
+

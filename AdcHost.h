@@ -130,7 +130,7 @@ public:
       anyChangeEvents = true;
     }
 
-    dataFactory.RegisterClass(origin_id, name, ObjMsgAdcData::Create);
+    ObjMsgData::RegisterClass(origin_id, name, ObjMsgAdcData::Create);
 
     return tmp;
   }

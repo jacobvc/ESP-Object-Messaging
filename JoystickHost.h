@@ -46,7 +46,7 @@ public:
 
     joy.btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
-    dataFactory.RegisterClass(origin_id, name, ObjMsgJoystickData::Create);
+    ObjMsgData::RegisterClass(origin_id, name, ObjMsgJoystickData::Create);
 
     return 0;
   }

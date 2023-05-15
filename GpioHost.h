@@ -77,7 +77,7 @@ public:
       // TODO make sure that IS_INPUT and at least one edge is also specified
       anyChangeEvents = true;
     }
-    dataFactory.RegisterClass(origin_id, name, ObjMsgGpioData::Create);
+    ObjMsgGpioData::RegisterClass(origin_id, name, ObjMsgGpioData::Create);
 
     gpio_config_t io_conf;
 

@@ -19,89 +19,6 @@ using namespace std;
 /** Message queue macros
  */
 #define MSG_QUEUE_MAX_DEPTH 10
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-
-/*
- *      ___       _          ___        _
- *     |   \ __ _| |_ __ _  | __|_ _ __| |_ ___ _ _ _  _
- *     | |) / _` |  _/ _` | | _/ _` / _|  _/ _ \ '_| || |
- *     |___/\__,_|\__\__,_| |_|\__,_\__|\__\___/_|  \_, |
- *                                                  |__/
- */
-
-/** Factory to create ObjMsgDataRef from JSON data for registered data 'name'.
- */
-class ObjMsgDataFactory
-{
-  unordered_map<string, ObjMsgDataRef (*)(uint16_t, char const *)> dataClasses;
-
-public:
-  /** register object creator function 'fn' to create object for endpoint 'name' */
-  bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *))
-  {
-    return dataClasses.insert(make_pair(name, fn)).second;
-  }
-  /** Create ObjMsgDataRef object for endpoint 'name' */
-  ObjMsgDataRef Create(uint16_t origin, char const *name)
-  {
-    ObjMsgDataRef (*fn)(uint16_t, char const *) = dataClasses[name];
-    if (fn)
-      return fn(origin, name);
-    return NULL;
-  }
-  /** Create ObjMsgDataRef object and populate it based on 'json' content */
-  ObjMsgDataRef Deserialize(uint16_t origin, char const *json)
-  {
-    ObjMsgDataRef data = NULL;
-
-    cJSON *root = cJSON_Parse(json);
-    if (root)
-    {
-      cJSON *jsonName = cJSON_GetObjectItemCaseSensitive(root, "name");
-      if (jsonName)
-      {
-        data = Create(origin, cJSON_GetStringValue(jsonName));
-        if (data)
-        {
-          if (data.get()->DeserializeValue(root))
-          {
-            cJSON_Delete(root);
-            return data;
-          }
-          else
-          {
-            ESP_LOGE("Deserialize", "Unable to parse value: %s", json);
-          }
-        }
-        else
-        {
-          printf("Create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName),
-                 cJSON_Print(cJSON_GetObjectItem(root, "value")));
-          // If not registered, deliver as JSON object carried ib string
-          data = ObjMsgDataString::Create(origin, cJSON_GetStringValue(jsonName),
-                                          cJSON_Print(cJSON_GetObjectItem(root, "value")), true);
-          ESP_LOGI("Deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
-
-          cJSON_Delete(root);
-          return data;
-        }
-      }
-      else
-      {
-        ESP_LOGE("Deserialize", "JSON has no name field: %s", json);
-      }
-      cJSON_Delete(root);
-    }
-    else
-    {
-      ESP_LOGE("Deserialize", "JSON malformed: %s", json);
-    }
-
-    return NULL;
-  }
-};
-
-extern ObjMsgDataFactory dataFactory; /**< THE data factory */
 
 /*
  *      _____                               _
@@ -129,17 +46,43 @@ class ObjMsgTransport
   class ObjMessage
   {
   public:
-    ObjMessage(ObjMsgDataRef dataRef) { _p = dataRef;  }
-    ~ObjMessage()  { /* ESP_LOGI(CORE_TAG, "ObjMessage destructed"); */ }
+    ObjMessage(ObjMsgDataRef dataRef) { _p = dataRef; }
+    ~ObjMessage()
+    { /* ESP_LOGI(CORE_TAG, "ObjMessage destructed"); */
+    }
     ObjMsgDataRef &dataRef() { return _p; }
+
   private:
     ObjMsgDataRef _p;
   };
 
 public:
-  ObjMsgTransport(uint16_t message_queue_depth);
-  BaseType_t Send(ObjMsgDataRef dataRef);
-  BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait);
+  ObjMsgTransport(uint16_t message_queue_depth)
+  {
+    message_queue = xQueueCreate(message_queue_depth, sizeof(ObjMessage *));
+  }
+  BaseType_t Send(ObjMsgDataRef dataRef)
+  {
+    // Create message object to send shared_ptr data
+    ObjMessage *msg = new ObjMessage(dataRef);
+    // and send it
+    return xQueueSend(message_queue, &msg, 0);
+  }
+
+  BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait)
+  {
+    ObjMessage *msg;
+    BaseType_t result = xQueueReceive(message_queue, &msg, xTicksToWait);
+    if (result)
+    {
+      // Received a message. Give caller reference to its data and delete the shared_ptr message object
+      dataRef = msg->dataRef();
+
+      delete msg;
+    }
+    // Return message reception result
+    return result;
+  }
 };
 
 /*
@@ -176,7 +119,7 @@ public:
    *
    */
   ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
-      : transport(transport), TAG(tag), origin_id(origin) { }
+      : transport(transport), TAG(tag), origin_id(origin) {}
 
   /** Consume provided data
    *
@@ -203,7 +146,7 @@ public:
    */
   virtual BaseType_t Produce(const char *message)
   {
-    ObjMsgDataRef data = dataFactory.Deserialize(origin_id, message);
+    ObjMsgDataRef data = ObjMsgData::Deserialize(origin_id, message);
     if (data)
     {
       return Produce(data);
