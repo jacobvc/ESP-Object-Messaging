@@ -25,14 +25,14 @@ public:
       : ObjMsgDataT<joystick_sample_t>(origin, name)
   {
     this->value = value;
-    // ESP_LOGI(CORE_TAG, "ObjMsgJoystickData(%u, %s, %u) constructed", origin, name, value);
+    // ESP_LOGI(TAG.c_str(), "ObjMsgJoystickData(%u, %s, %u) constructed", origin, name, value);
   }
   ObjMsgJoystickData(uint16_t origin, char const *name)
       : ObjMsgDataT<joystick_sample_t>(origin, name) {}
 
   ~ObjMsgJoystickData()
   {
-    // ESP_LOGI(CORE_TAG, "ObjMsgJoystickData destructed");
+    // ESP_LOGI(TAG.c_str(), "ObjMsgJoystickData destructed");
   }
 
   static ObjMsgDataRef Create(uint16_t origin, char const *name, joystick_sample_t value)

@@ -38,7 +38,7 @@ void WebsocketHost::WebSockAsyncBroadcast(void *arg)
     ws_pkt.len = strlen((char *)arg);
     ws_pkt.final = true;
 
-    //ESP_LOGI(TAG, "async_broadcast(%s)", (char *)arg);
+    //ESP_LOGI(TAG.c_str(), "async_broadcast(%s)", (char *)arg);
 
     static size_t max_clients = CONFIG_LWIP_MAX_LISTENING_TCP;
     size_t fds = max_clients;
@@ -70,7 +70,7 @@ bool WebsocketHost::Consume(ObjMsgData *data)
     const char *json = str.c_str();
     int err = httpd_queue_work(server, WebSockAsyncBroadcast, strdup(json));
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Consume(%s)=>%d", json, err);
+        ESP_LOGE(TAG.c_str(), "Consume(%s)=>%d", json, err);
     }
     return true;
   }
@@ -88,7 +88,7 @@ esp_err_t WebsocketHost::WebSockMsgHandler(httpd_req_t *req)
 
     if (req->method == HTTP_GET)
     {
-        ESP_LOGI(host->TAG, "Handshake done, the new connection was opened");
+        ESP_LOGI(host->TAG.c_str(), "Handshake done, the Websocket connection was opened");
         return ESP_OK;
     }
 
@@ -101,7 +101,7 @@ esp_err_t WebsocketHost::WebSockMsgHandler(httpd_req_t *req)
 
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, sizeof(message));
     if (ret != ESP_OK) {
-        ESP_LOGE(host->TAG, "httpd_ws_recv_frame failed with error %d", ret);
+        ESP_LOGE(host->TAG.c_str(), "httpd_ws_recv_frame failed with error %d", ret);
         return ret;
     }
     host->Produce(message);
@@ -125,7 +125,7 @@ httpd_handle_t WebsocketHost::StartWebserver(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Start the httpd server
-    ESP_LOGI(TAG, "Starting HTTP server on port: '%d'", config.server_port);
+    ESP_LOGI(TAG.c_str(), "Starting HTTP server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Registering the ws handler
         for (std::list<httpd_uri_t>::iterator it = uris.begin(); it != uris.end(); ++it){
@@ -134,7 +134,7 @@ httpd_handle_t WebsocketHost::StartWebserver(void)
         return server;
     }
 
-    ESP_LOGI(TAG, "Error starting server!");
+    ESP_LOGE(TAG.c_str(), "Error starting server!");
     return NULL;
 }
 
@@ -160,13 +160,13 @@ void WebsocketHost::WifiEventHandler(void* arg, esp_event_base_t event_base,
 
     switch (event_id) {
       case WIFI_EVENT_STA_START:
-        ESP_LOGI(host->TAG, "STA_START Connecting to the AP");
+        ESP_LOGI(host->TAG.c_str(), "STA_START Connecting to the AP");
         esp_wifi_connect();
         break;
       case WIFI_EVENT_STA_DISCONNECTED:
-        ESP_LOGI(host->TAG, "Disconnected. Connecting to the AP again...");
+        ESP_LOGW(host->TAG.c_str(), "Disconnected. Connecting to the AP again...");
         if (server) {
-            ESP_LOGI(host->TAG, "Stopping webserver");
+            ESP_LOGW(host->TAG.c_str(), "Stopping webserver");
             host->StopWebserver();
        }
         esp_wifi_connect();
@@ -180,12 +180,12 @@ void WebsocketHost::IpConnectHandler(void* arg, esp_event_base_t event_base,
     char buffer[30];
     WebsocketHost *host = (WebsocketHost *)arg;
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-    ESP_LOGI(host->TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
+    ESP_LOGI(host->TAG.c_str(), "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(buffer, IPSTR, IP2STR(&event->ip_info.ip));
     host->Produce(ObjMsgDataString::Create(host->origin_id, "__my_ip__", buffer));
 
     if (server == NULL) {
-        ESP_LOGI(host->TAG, "Starting webserver");
+        ESP_LOGI(host->TAG.c_str(), "Starting webserver");
         host->StartWebserver();
     }
     /* Signal to continue execution */
@@ -214,14 +214,14 @@ void WebsocketHost::WifiScan(void)
     ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
-    ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
+    ESP_LOGI(TAG.c_str(), "Total APs scanned = %u", ap_count);
     Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "begin"));
 
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
         Produce(ObjMsgDataString::Create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
-        ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
-        ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
-        ESP_LOGI(TAG, "Channel \t%d", ap_info[i].primary);
+        ESP_LOGI(TAG.c_str(), "SSID \t\t%s", ap_info[i].ssid);
+        ESP_LOGI(TAG.c_str(), "RSSI \t\t%d", ap_info[i].rssi);
+        ESP_LOGI(TAG.c_str(), "Channel \t%d", ap_info[i].primary);
     }
     Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "end"));
 }

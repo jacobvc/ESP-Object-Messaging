@@ -129,17 +129,17 @@ class ObjMsgTransport
   class ObjMessage
   {
   public:
-    ObjMessage(ObjMsgDataRef data) { _p = data;  }
+    ObjMessage(ObjMsgDataRef dataRef) { _p = dataRef;  }
     ~ObjMessage()  { /* ESP_LOGI(CORE_TAG, "ObjMessage destructed"); */ }
-    ObjMsgDataRef &data() { return _p; }
+    ObjMsgDataRef &dataRef() { return _p; }
   private:
     ObjMsgDataRef _p;
   };
 
 public:
   ObjMsgTransport(uint16_t message_queue_depth);
-  BaseType_t Send(ObjMsgDataRef data);
-  BaseType_t Receive(ObjMsgDataRef &data, TickType_t xTicksToWait);
+  BaseType_t Send(ObjMsgDataRef dataRef);
+  BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait);
 };
 
 /*
@@ -169,18 +169,14 @@ protected:
   ObjMsgTransport &transport; /** transport used to send content */
 
 public:
-  const char *TAG;
-  uint16_t origin_id;
+  const string TAG;
+  const uint16_t origin_id;
 
   /** Constructor
    *
    */
   ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
-      : transport(transport)
-  {
-    TAG = tag;
-    origin_id = origin;
-  }
+      : transport(transport), TAG(tag), origin_id(origin) { }
 
   /** Consume provided data
    *

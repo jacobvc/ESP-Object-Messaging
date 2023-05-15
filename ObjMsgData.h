@@ -9,8 +9,6 @@
 
 using namespace std;
 
-#define CORE_TAG "ObjMsg"
-
 /*
  *       ___  _     _ __  __         ___       _
  *      / _ \| |__ (_)  \/  |_____ _|   \ __ _| |_ __ _
@@ -41,9 +39,11 @@ class ObjMsgData
   uint16_t origin;
   /** Endpoint name */
   string name;
-
+  string TAG;
+  
 public:
   /** MANDATORY vitrual destructor */
+  ObjMsgData(string tag) : TAG(tag) { }
   virtual ~ObjMsgData() {}
 
   uint16_t GetOrigin() { return origin; }
@@ -76,6 +76,61 @@ public:
  *               |__/          |___/
  */
 
+//#define RESOLVE_TYPES_FOR_LOGGING
+// Useful for development debugging at a cost of about
+//  2K bytes of flash and zero RAM
+#ifdef RESOLVE_TYPES_FOR_LOGGING
+#include <string_view>
+#include <array>   // std::array
+#include <utility> // std::index_sequence
+
+template <std::size_t...Idxs>
+constexpr auto substring_as_array(std::string_view str, std::index_sequence<Idxs...>)
+{
+  return std::array{str[Idxs]..., '\n'};
+}
+
+template <typename T>
+constexpr auto type_name_array()
+{
+#if defined(__clang__)
+  constexpr auto prefix   = std::string_view{"[T = "};
+  constexpr auto suffix   = std::string_view{"]"};
+  constexpr auto function = std::string_view{__PRETTY_FUNCTION__};
+#elif defined(__GNUC__)
+  constexpr auto prefix   = std::string_view{"with T = "};
+  constexpr auto suffix   = std::string_view{"]"};
+  constexpr auto function = std::string_view{__PRETTY_FUNCTION__};
+#elif defined(_MSC_VER)
+  constexpr auto prefix   = std::string_view{"type_name_array<"};
+  constexpr auto suffix   = std::string_view{">(void)"};
+  constexpr auto function = std::string_view{__FUNCSIG__};
+#else
+# error Unsupported compiler
+#endif
+
+  constexpr auto start = function.find(prefix) + prefix.size();
+  constexpr auto end = function.rfind(suffix);
+
+  static_assert(start < end);
+
+  constexpr auto name = function.substr(start, (end - start));
+  return substring_as_array(name, std::make_index_sequence<name.size()>{});
+}
+
+template <typename T>
+struct type_name_holder {
+  static inline constexpr auto value = type_name_array<T>();
+};
+
+template <typename T>
+constexpr auto type_name() -> std::string
+{
+  constexpr auto& value = type_name_holder<T>::value;
+  return string{std::string_view{value.data(), value.size() - 1}};
+}
+#endif
+
 /** Templatized ObjMsgData class
  */
 template <class T>
@@ -85,7 +140,12 @@ protected:
   /** The (template specific) binary value */
   T value;
   /** Constructor */
-  ObjMsgDataT(uint16_t origin, char const *name)
+  ObjMsgDataT(uint16_t origin, char const *name) 
+#ifdef RESOLVE_TYPES_FOR_LOGGING
+  : ObjMsgData("ObjMsgDataT<" + type_name<T>() + ">")
+#else
+  : ObjMsgData("ObjMsgDataT<T>")
+#endif
   {
     this->origin = origin;
     this->name = name;
@@ -126,12 +186,12 @@ public:
       : ObjMsgDataT<int>(origin, name)
   {
     this->value = value;
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataInt(%u, %s, %d) constructed", origin, name, value);
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataInt(%u, %s, %d) constructed", origin, name, value);
   }
 
   ~ObjMsgDataInt()
   {
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataInt destructed");
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataInt destructed");
   }
 
   static ObjMsgDataRef Create(uint16_t origin, char const *name, int value)
@@ -192,12 +252,12 @@ public:
       : ObjMsgDataT<double>(origin, name)
   {
     this->value = value;
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataFloat(%u, %s, %f) constructed", origin, name, value);
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataFloat(%u, %s, %f) constructed", origin, name, value);
   }
 
   ~ObjMsgDataFloat()
   {
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataFloat destructed");
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataFloat destructed");
   }
 
   static ObjMsgDataRef Create(uint16_t origin, char const *name)
@@ -266,11 +326,11 @@ public:
       : ObjMsgDataT<string>(origin, name), asJson(asJson)
   {
     this->value = value;
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataString(%u, %s, %u) constructed", origin, name, value);
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataString(%u, %s, %u) constructed", origin, name, value);
   }
   ~ObjMsgDataString()
   {
-    // ESP_LOGI(CORE_TAG, "ObjMsgDataString destructed");
+    // ESP_LOGI(TAG.c_str(), "ObjMsgDataString destructed");
   }
 
   static ObjMsgDataRef Create(uint16_t origin, char const *name, const char *value, bool asJson = false)

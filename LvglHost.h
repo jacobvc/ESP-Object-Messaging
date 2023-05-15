@@ -58,7 +58,7 @@ public:
 
     // Store this object in user_data for lookup
     lv_obj_add_event_cb(control, produce_cb, eventCode, this);
-    printf("Registering %s: %p\n", name, control);
+    // printf("Registering %s: %p\n", name, control);
 
     return true;
   }
@@ -96,7 +96,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume name (%s) value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -114,7 +114,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume (%s) button value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume (%s) button value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -155,7 +155,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume name (%s) value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -168,7 +168,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be (RGB encoded) integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume name (%s) value must be (RGB encoded) integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -183,7 +183,7 @@ public:
           // break;
         case IMGBUTTON_CT:
         case KEYBOARD_CT:
-          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
+          ESP_LOGE(TAG.c_str(), "consume type (%d) NOT IMPLEMENTED", ctx->type);
           return false;
         case SLIDER_CT:
           if (msg->GetValue(intVal))
@@ -192,7 +192,7 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume name (%s) value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
@@ -210,18 +210,18 @@ public:
           }
           else
           {
-            ESP_LOGE(TAG, "consume name (%s) value must be integer", msg->GetName().c_str());
+            ESP_LOGE(TAG.c_str(), "consume name (%s) value must be integer", msg->GetName().c_str());
             return false;
           }
           break;
         default:
-          ESP_LOGE(TAG, "consume type (%d) NOT IMPLEMENTED", ctx->type);
+          ESP_LOGE(TAG.c_str(), "consume type (%d) NOT IMPLEMENTED", ctx->type);
           return false;
         }
       }
       else
       {
-        ESP_LOGI(TAG, "consume name (%s) NOT REGISTERED", msg->GetName().c_str());
+        ESP_LOGI(TAG.c_str(), "consume name (%s) NOT REGISTERED", msg->GetName().c_str());
         return false;
       }
       return true;
@@ -301,7 +301,7 @@ protected:
         }
         case IMGBUTTON_CT:
         case KEYBOARD_CT:
-          ESP_LOGE(host->TAG, "produce type (%d) NOT IMPLEMENTED", ctx->type);
+          ESP_LOGE(host->TAG.c_str(), "produce type (%d) NOT IMPLEMENTED", ctx->type);
           break;
         case SLIDER_CT:
           data = ObjMsgDataInt::Create(
@@ -314,7 +314,7 @@ protected:
           host->Produce(data);
           break;
         default:
-          ESP_LOGE(host->TAG, "produce type (%d) NOT IMPLEMENTED", ctx->type);
+          ESP_LOGE(host->TAG.c_str(), "produce type (%d) NOT IMPLEMENTED", ctx->type);
           break;
         }
       }
@@ -325,7 +325,7 @@ protected:
     }
     else
     {
-      ESP_LOGE(host->TAG, "produce event for %p NOT REGISTERED", event->target);
+      ESP_LOGE(host->TAG.c_str(), "produce event for %p NOT REGISTERED", event->target);
     }
   }
 

@@ -60,7 +60,7 @@ public:
     };
     ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper));
 
-    ESP_LOGI(TAG, "Connect timer and operator");
+    ESP_LOGI(TAG.c_str(), "Connect timer and operator");
     ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper, timer));
   }
 
@@ -75,7 +75,7 @@ public:
   {
     dataFactory.RegisterClass(origin_id, name, ObjMsgServoData::Create);
 
-    ESP_LOGI(TAG, "Create comparator and generator from the operator");
+    ESP_LOGI(TAG.c_str(), "Create comparator and generator from the operator");
     mcpwm_cmpr_handle_t comparator = NULL;
     mcpwm_comparator_config_t comparator_config = {
         .flags{
@@ -98,7 +98,7 @@ public:
     // set the initial compare value, so that the servo will spin to the center position
     ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator, 
       AngleToPulsewidth(0)));
-    ESP_LOGI(TAG, "Set generator action on timer and compare event");
+    ESP_LOGI(TAG.c_str(), "Set generator action on timer and compare event");
     // go high on counter empty
     ESP_ERROR_CHECK(mcpwm_generator_set_actions_on_timer_event(generator,
       MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, 
@@ -117,7 +117,7 @@ public:
 
   bool Start()
   {
-    ESP_LOGI(TAG, "Enable and start timer");
+    ESP_LOGI(TAG.c_str(), "Enable and start timer");
     ESP_ERROR_CHECK(mcpwm_timer_enable(timer));
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP));
 
