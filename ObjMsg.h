@@ -9,6 +9,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <list>
 #include <memory>
 
 #include "cjson.h"
@@ -19,6 +20,78 @@ using namespace std;
 /** Message queue macros
  */
 #define MSG_QUEUE_MAX_DEPTH 10
+
+class ObjMsgTransport;
+
+/*
+ *      _  _        _
+ *     | || |___ __| |_
+ *     | __ / _ (_-<  _|
+ *     |_||_\___/__/\__|
+ *
+ */
+
+/** Sampling configuration.
+ *  For CHANGE_EVENT, the host implements a mechanism to detect
+ *  changes and Produce() a message when that occurs
+ */
+enum ObjMsgSample
+{
+  POLLING,     /**< Manual sampling */
+  CHANGE_EVENT /**< Detect changes and Produce() message upon change */
+};
+
+/** virtual base class - Host a resource and Produce() / Consume() it's content
+ *
+ */
+class ObjMsgHost
+{
+protected:
+  ObjMsgTransport &transport; /** transport used to send content */
+
+public:
+  const string TAG;
+  const uint16_t origin_id;
+
+  /** Constructor
+   *
+   */
+  ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
+      : transport(transport), TAG(tag), origin_id(origin) {}
+
+  /** Consume provided data
+   *
+   * Returns true if successfully consumed, false if not registered as consumer or unab le to use data
+   */
+  virtual bool Consume(ObjMsgData *data) { return false; }
+
+  /** Produce provided data
+   *
+   * use transport to Send provided data
+   *
+   * <returns> true if successfully produced / else false
+   */
+  virtual BaseType_t Produce(ObjMsgDataRef data);
+
+  /** Produce data created by parsing a JSON encoded message
+   *
+   * WARNING - for now, uses global dataFactory
+   *
+   * <returns> true if successfully produced / else false
+   */
+  virtual BaseType_t Produce(const char *message)
+  {
+    ObjMsgDataRef data = ObjMsgData::Deserialize(origin_id, message);
+    if (data)
+    {
+      return Produce(data);
+    }
+    return false;
+  }
+
+  /** Start the change detection operations */
+  virtual bool Start() = 0;
+};
 
 /*
  *      _____                               _
@@ -69,6 +142,23 @@ public:
     return xQueueSend(message_queue, &msg, 0);
   }
 
+  bool AddForward(ObjMsgHost *fwd)
+  {
+    forwards.push_back(fwd);
+    return true;
+  }
+
+  void Forward(ObjMsgData *data)
+  {
+    for (list<ObjMsgHost *>::iterator it = forwards.begin(); it != forwards.end(); ++it)
+    {
+      if (!data->IsFrom((*it)->origin_id))
+      {
+        (*it)->Consume(data);
+      }
+    }
+  }
+
   BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait)
   {
     ObjMessage *msg;
@@ -77,83 +167,13 @@ public:
     {
       // Received a message. Give caller reference to its data and delete the shared_ptr message object
       dataRef = msg->dataRef();
-
+      Forward(dataRef.get());
       delete msg;
     }
     // Return message reception result
     return result;
   }
-};
 
-/*
- *      _  _        _
- *     | || |___ __| |_
- *     | __ / _ (_-<  _|
- *     |_||_\___/__/\__|
- *
- */
-
-/** Sampling configuration.
- *  For CHANGE_EVENT, the host implements a mechanism to detect
- *  changes and Produce() a message when that occurs
- */
-enum ObjMsgSample
-{
-  POLLING,     /**< Manual sampling */
-  CHANGE_EVENT /**< Detect changes and Produce() message upon change */
-};
-
-/** virtual base class - Host a resource and Produce() / Consume() it's content
- *
- */
-class ObjMsgHost
-{
 protected:
-  ObjMsgTransport &transport; /** transport used to send content */
-
-public:
-  const string TAG;
-  const uint16_t origin_id;
-
-  /** Constructor
-   *
-   */
-  ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
-      : transport(transport), TAG(tag), origin_id(origin) {}
-
-  /** Consume provided data
-   *
-   * Returns true if successfully consumed, false if not registered as consumer or unab le to use data
-   */
-  virtual bool Consume(ObjMsgData *data) { return false; }
-
-  /** Produce provided data
-   *
-   * use transport to Send provided data
-   *
-   * <returns> true if successfully produced / else false
-   */
-  virtual BaseType_t Produce(ObjMsgDataRef data)
-  {
-    return transport.Send(data);
-  }
-
-  /** Produce data created by parsing a JSON encoded message
-   *
-   * WARNING - for now, uses global dataFactory
-   *
-   * <returns> true if successfully produced / else false
-   */
-  virtual BaseType_t Produce(const char *message)
-  {
-    ObjMsgDataRef data = ObjMsgData::Deserialize(origin_id, message);
-    if (data)
-    {
-      return Produce(data);
-    }
-    return false;
-  }
-
-  /** Start the change detection operations */
-  virtual bool Start() = 0;
+  list<ObjMsgHost *> forwards;
 };
