@@ -60,7 +60,7 @@ public:
     raw = std::min(std::max(rawAdc, 0), rMax);
     int valueX2;
 
-    if (raw > rRef)
+    if (raw >= rRef)
     {
       // Second segment, from vRefX2 to vMaxX2 over rRef to rMax
       valueX2 = vRefX2 + (vMaxX2 - vRefX2) * (raw - rRef) / (rMax - rRef);

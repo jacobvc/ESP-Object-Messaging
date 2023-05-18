@@ -51,9 +51,9 @@ ObjMsgDataRef ObjMsgDataFactory::Deserialize(uint16_t origin, char const *json)
       }
       else
       {
-        printf("Create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName),
-               cJSON_Print(cJSON_GetObjectItem(root, "value")));
-        // If not registered, deliver as JSON object carried ib string
+        //printf("Create(%d, %s, %s)\n", origin, cJSON_GetStringValue(jsonName),
+        //       cJSON_Print(cJSON_GetObjectItem(root, "value")));
+        // If not registered, deliver as JSON object carried in string
         data = ObjMsgDataString::Create(origin, cJSON_GetStringValue(jsonName),
                                         cJSON_Print(cJSON_GetObjectItem(root, "value")), true);
         ESP_LOGI("Deserialize", "No class registered for: %s", cJSON_GetStringValue(jsonName));
