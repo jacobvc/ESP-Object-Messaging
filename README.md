@@ -23,14 +23,14 @@ and deserialization.
 Implements GetValue() for string, integer, and double values, that return
 false if that value type is not available.
 
-Implements GetRawValue() to access the underlying binary value.
-
 ## ObjMsgDataT
 Abstract base class for templatized ObjMsgData. Intended to always be
 instantiated using a ObjMsgDataRef (a std::shared_ptr)
 
 Each ObjMsgDataT is expected to implement static Create() methods to instantiate
 it (with or without data content) within an ObjMsgDataRef
+
+Implements GetRawValue() to access the underlying binary value.
 
 ## ObjMsgDataRef
 A std::shared_ptr encoding ObjMsgData.
