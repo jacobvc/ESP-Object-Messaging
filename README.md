@@ -30,7 +30,7 @@ Abstract base class for templatized ObjMsgData. Intended to always be
 instantiated using a ObjMsgDataRef (a std::shared_ptr)
 
 Each ObjMsgDataT is expected to implement static Create() methods to instantiate
-it with an ObjMsgDataRef
+it (with or without data content) within an ObjMsgDataRef
 
 ## ObjMsgDataRef
 A std::shared_ptr encoding ObjMsgData.
