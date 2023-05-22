@@ -48,38 +48,37 @@ class ObjMsgHost
 {
 protected:
   ObjMsgTransport &transport; /** transport used to send content */
-
-public:
   const string TAG;
   const uint16_t origin_id;
 
-  /** Constructor
-   *
-   */
+public:
+  /// Constructor , specifying transport object, tag and origin
+  /// @param transport: Transport object
+  /// @param tag: Name for log messages from ths instance
+  /// @param origin: Origin ID for this host
   ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
       : transport(transport), TAG(tag), origin_id(origin) {}
 
-  /** Consume provided data
-   *
-   * Returns true if successfully consumed, false if not registered as consumer or unab le to use data
-   */
+  /// Consume provided data
+  ///
+  /// @param data - data to consume
+  /// @return true if successfully consumed, false if not registered as consumer or unable to use data 
   virtual bool Consume(ObjMsgData *data) { return false; }
 
-  /** Produce provided data
-   *
-   * use transport to Send provided data
-   *
-   * <returns> true if successfully produced / else false
-   */
+  /// Produce provided data
+  ///
+  /// use transport to Send provided data
+  /// @param data - data to send
+  /// @return ESP_OK if successfully produced / else error code
   virtual BaseType_t Produce(ObjMsgDataRef data);
 
-  /** Produce data created by parsing a JSON encoded message
-   *
-   * WARNING - for now, uses global dataFactory
-   *
-   * <returns> true if successfully produced / else false
-   */
-  virtual BaseType_t Produce(const char *message)
+  /// Produce data created by parsing a JSON encoded message
+  ///
+  /// WARNING - for now, uses global dataFactory
+  ///
+   /// @param message message to parse
+   /// @return ESP_OK if successfully produced / else error code
+   virtual BaseType_t Produce(const char *message)
   {
     ObjMsgDataRef data = ObjMsgData::Deserialize(origin_id, message);
     if (data)
@@ -89,8 +88,13 @@ public:
     return false;
   }
 
-  /** Start the change detection operations */
+  /// Start the change detection operations 
+  /// @return boolean successfully started
   virtual bool Start() = 0;
+
+  /// Get the origin ID for this host
+  /// @return the origin ID
+  uint16_t GetOrigin() { return origin_id; }
 };
 
 /*
@@ -130,10 +134,16 @@ class ObjMsgTransport
   };
 
 public:
+  /// @brief 
+  /// @param message_queue_depth 
   ObjMsgTransport(uint16_t message_queue_depth)
   {
     message_queue = xQueueCreate(message_queue_depth, sizeof(ObjMessage *));
   }
+
+  /// Create a message containing 'dataref' and send to 'message_queue'
+  /// @param dataRef: Data to send
+  /// @return ESP_OK or error code
   BaseType_t Send(ObjMsgDataRef dataRef)
   {
     // Create message object to send shared_ptr data
@@ -142,23 +152,33 @@ public:
     return xQueueSend(message_queue, &msg, 0);
   }
 
+  /// Add 'fwd' to the forwards list
+  /// @param fwd: host to receive forwards
+  /// @return true if successful
   bool AddForward(ObjMsgHost *fwd)
   {
     forwards.push_back(fwd);
     return true;
   }
 
+  /// Forward 'data' to registered rconsumers (if they are not the origin)
+  /// @param data: data to forward
   void Forward(ObjMsgData *data)
   {
     for (list<ObjMsgHost *>::iterator it = forwards.begin(); it != forwards.end(); ++it)
     {
-      if (!data->IsFrom((*it)->origin_id))
+      if (!data->IsFrom((*it)->GetOrigin()))
       {
         (*it)->Consume(data);
       }
     }
   }
 
+  /// Wait on receive queue for the next message, forward as configured and deliver to caller
+  ///
+  /// @param dataRef: Caller's reference to receive message
+  /// @param xTicksToWait: Timeout on wait
+  /// @return ESP_OK or error code
   BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait)
   {
     ObjMessage *msg;

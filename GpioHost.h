@@ -1,7 +1,6 @@
 #pragma once
 
 #include "driver/gpio.h"
-// #include <algorithm>
 
 #include "ObjMsg.h"
 
@@ -49,7 +48,7 @@ public:
   gpio_num_t pin;
   ObjMsgSample mode;
   GpioFlags flags;
-  int8_t changed; // +1, 0, -1 == on, none, off
+  int8_t changed; // value {+1, 0, -1} == changed to {on, none, off}
 
   uint8_t value; // Measured value
 };
