@@ -31,30 +31,27 @@ class ObjMsgTransport;
  *
  */
 
-/** Sampling configuration.
- *  For CHANGE_EVENT, the host implements a mechanism to detect
- *  changes and Produce() a message when that occurs
- */
+/// Sampling configuration.
+/// For CHANGE_EVENT, the host implements a mechanism to detect
+/// changes and Produce() a message when that occurs
 enum ObjMsgSample
 {
   POLLING,     /**< Manual sampling */
   CHANGE_EVENT /**< Detect changes and Produce() message upon change */
 };
 
-/** virtual base class - Host a resource and Produce() / Consume() it's content
- *
- */
+/// virtual base class - Host a resource and Produce() / Consume() it's content
 class ObjMsgHost
 {
 protected:
-  ObjMsgTransport &transport; /** transport used to send content */
-  const string TAG;
-  const uint16_t origin_id;
+  ObjMsgTransport &transport; ///< transport used to send content
+  const string TAG; ///< TAG for log messages
+  const uint16_t origin_id; ///< Name for log messages from ths instance
 
 public:
   /// Constructor , specifying transport object, tag and origin
   /// @param transport: Transport object
-  /// @param tag: Name for log messages from ths instance
+  /// @param tag: Name for log messages
   /// @param origin: Origin ID for this host
   ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
       : transport(transport), TAG(tag), origin_id(origin) {}
@@ -62,33 +59,33 @@ public:
   /// Consume provided data
   ///
   /// @param data - data to consume
-  /// @return true if successfully consumed, false if not registered as consumer or unable to use data 
+  /// @return true if successfully consumed, false if not registered as consumer or unable to use data
   virtual bool Consume(ObjMsgData *data) { return false; }
 
   /// Produce provided data
   ///
   /// use transport to Send provided data
   /// @param data - data to send
-  /// @return ESP_OK if successfully produced / else error code
-  virtual BaseType_t Produce(ObjMsgDataRef data);
+  /// @return boolean success
+  virtual bool Produce(ObjMsgDataRef data);
 
   /// Produce data created by parsing a JSON encoded message
   ///
   /// WARNING - for now, uses global dataFactory
   ///
-   /// @param message message to parse
-   /// @return ESP_OK if successfully produced / else error code
-   virtual BaseType_t Produce(const char *message)
+  /// @param message message to parse
+  /// @return boolean success
+  virtual bool Produce(const char *message)
   {
     ObjMsgDataRef data = ObjMsgData::Deserialize(origin_id, message);
     if (data)
     {
-      return Produce(data);
+      return Produce(data) ? true : false;
     }
     return false;
   }
 
-  /// Start the change detection operations 
+  /// Start the change detection operations
   /// @return boolean successfully started
   virtual bool Start() = 0;
 
@@ -105,21 +102,18 @@ public:
  *                           |_|
  */
 
-/**
- *
- */
+/// Send / Receive messages
 class ObjMsgTransport
 {
   QueueHandle_t message_queue = NULL;
-  /** Class used to convey ObjMsgData messages.
-   *
-   * ObjMessage implementation creates a
-   * new ObjMessage to be sent carrying a reference to requested
-   * ObjMsgData (ObjMsgDataRef), then deletes that reference upon reception.
-   *
-   * The lifetime of the ObjMsgData is managed by virtue
-   * of it's shared pointer.
-   */
+  /// Class used to convey ObjMsgData messages.
+  ///
+  /// ObjMessage implementation creates a
+  /// new ObjMessage to be sent carrying a reference to requested
+  /// ObjMsgData (ObjMsgDataRef), then deletes that reference upon reception.
+  ///
+  /// The lifetime of the ObjMsgData is managed by virtue
+  /// of it's shared pointer.
   class ObjMessage
   {
   public:
@@ -134,8 +128,8 @@ class ObjMsgTransport
   };
 
 public:
-  /// @brief 
-  /// @param message_queue_depth 
+  /// Constructor
+  /// @param message_queue_depth
   ObjMsgTransport(uint16_t message_queue_depth)
   {
     message_queue = xQueueCreate(message_queue_depth, sizeof(ObjMessage *));
@@ -143,13 +137,13 @@ public:
 
   /// Create a message containing 'dataref' and send to 'message_queue'
   /// @param dataRef: Data to send
-  /// @return ESP_OK or error code
-  BaseType_t Send(ObjMsgDataRef dataRef)
+  /// @return boolean success
+  bool Send(ObjMsgDataRef dataRef)
   {
     // Create message object to send shared_ptr data
     ObjMessage *msg = new ObjMessage(dataRef);
     // and send it
-    return xQueueSend(message_queue, &msg, 0);
+    return xQueueSend(message_queue, &msg, 0) ? true:false;
   }
 
   /// Add 'fwd' to the forwards list
@@ -178,11 +172,11 @@ public:
   ///
   /// @param dataRef: Caller's reference to receive message
   /// @param xTicksToWait: Timeout on wait
-  /// @return ESP_OK or error code
-  BaseType_t Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait)
+  /// @return boolean success
+  bool Receive(ObjMsgDataRef &dataRef, TickType_t xTicksToWait)
   {
     ObjMessage *msg;
-    BaseType_t result = xQueueReceive(message_queue, &msg, xTicksToWait);
+    bool result = xQueueReceive(message_queue, &msg, xTicksToWait) ? true:false;
     if (result)
     {
       // Received a message. Give caller reference to its data and delete the shared_ptr message object

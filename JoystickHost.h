@@ -16,9 +16,16 @@
 // Sample count to average
 #define NO_OF_SAMPLES 5
 
+/// ObjMsgHost, hosting joysticks
 class JoystickHost : public ObjMsgHost
 {
 public:
+  /// Constructor, specifying transport object and origin 
+  /// @param adc: AdcHost, hosting analog inputs
+  /// @param gpio: GpioHost, hosting digital inouts
+  /// @param transport: Transport object
+  /// @param origin: Origin ID for this host
+  /// @param sampleIntervalMs: sampling interval for event detection
   JoystickHost(AdcHost &adc, GpioHost &gpio, ObjMsgTransport &transport, uint16_t origin, 
     TickType_t sampleIntervalMs)
       : ObjMsgHost(transport, "JOYSTICK", origin), adc(adc), gpio(gpio)
@@ -27,6 +34,14 @@ public:
     anyChangeEvents = false;
   }
 
+  /// Add joystick as 'name', to operate in 'mode' with analog channels 'ad_x' and
+  /// 'ad_y', and switch GPIO input 'btn'
+  /// @param name: Data object name 
+  /// @param mode: Sampling mode (manual vs event)
+  /// @param ad_x: ADC channel for x input 
+  /// @param ad_y: ADC channel for y input 
+  /// @param btn: GPIO port for button
+  /// @return 
   int Add(string name, ObjMsgSample mode, 
     adc_channel_t ad_x, adc_channel_t ad_y, gpio_num_t btn)
   {

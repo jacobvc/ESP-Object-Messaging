@@ -1,23 +1,9 @@
-/** @file
- *
- * Declaration of ObjMsgData and derived scalar classes
- *
- */
 #pragma once
 
 #define isnan(n) ((n != n) ? 1 : 0)
 
 using namespace std;
 
-/*
- *       ___  _     _ __  __         ___       _
- *      / _ \| |__ (_)  \/  |_____ _|   \ __ _| |_ __ _
- *     | (_) | '_ \| | |\/| (_-< _` | |) / _` |  _/ _` |
- *      \___/|_.__// |_|  |_/__|__, |___/\__,_|\__\__,_|
- *               |__/          |___/
- */
-/**
- */
 class ObjMsgData;
 typedef shared_ptr<ObjMsgData> ObjMsgDataRef;
 
@@ -29,33 +15,49 @@ typedef shared_ptr<ObjMsgData> ObjMsgDataRef;
  *                                                  |__/
  */
 
-/** Factory to create ObjMsgDataRef from JSON data for registered data 'name'.
- */
+/// Factory to create ObjMsgDataRef from JSON data for registered data 'name'.
 class ObjMsgDataFactory
 {
   unordered_map<string, ObjMsgDataRef (*)(uint16_t, char const *)> dataClasses;
 
 public:
-  /** register object creator function 'fn' to create object for endpoint 'name' */
+  /// Register object creator function 'fn' to create object for endpoint 'name'
+  /// @param origin - origin to register
+  /// @param name - name to register
+  /// @param fn - Create function
+  /// @return bool registratin successful
   bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *));
 
-  /** Create ObjMsgDataRef object for endpoint 'name' */
+  /// Create ObjMsgDataRef object for endpoint 'name'
+  /// @param origin - origin of data
+  /// @param name - registered name
+  /// @return created object
   ObjMsgDataRef Create(uint16_t origin, char const *name);
 
-  /** Create ObjMsgDataRef object and populate it based on 'json' content */
+  /// Create ObjMsgDataRef object and populate it based on 'json' content
+  /// @param origin - origin of data
+  /// @param json - JSON content
+  /// @return 
   ObjMsgDataRef Deserialize(uint16_t origin, char const *json);
 };
 
-/** ObjMsgData virtual base class
- *
- * All data is exchanged using objects of the ObjMsgData base class
- *
- * Identifies origin, endpoint name, and contains
- * binary data with JSON serialization and deserialization.
- *
- * Abstract base class for templatized ObjMsgDataT. Intended to always be
- * instantiated using a ObjMsgDataRef (a std::shared_ptr)
+/*
+ *       ___  _     _ __  __         ___       _
+ *      / _ \| |__ (_)  \/  |_____ _|   \ __ _| |_ __ _
+ *     | (_) | '_ \| | |\/| (_-< _` | |) / _` |  _/ _` |
+ *      \___/|_.__// |_|  |_/__|__, |___/\__,_|\__\__,_|
+ *               |__/          |___/
  */
+
+/// ObjMsgData virtual base class
+/// 
+/// All data is exchanged using objects of the ObjMsgData base class
+/// 
+/// Identifies origin, endpoint name, and contains
+/// binary data with JSON serialization and deserialization.
+/// 
+/// Abstract base class for templatized ObjMsgDataT. Intended to always be
+/// instantiated using a ObjMsgDataRef (a std::shared_ptr)
 class ObjMsgData
 {
   protected:
@@ -68,40 +70,66 @@ class ObjMsgData
 public:
   static ObjMsgDataFactory dataFactory;
 
-  /** MANDATORY vitrual destructor */
+  /// Constructor
+  /// @param tag - TAG for log messages
   ObjMsgData(string tag) : TAG(tag) { }
+  /// MANDATORY vitrual destructor
   virtual ~ObjMsgData() {}
 
+  /// Origin ID accessor
+  /// @return Origin ID
   uint16_t GetOrigin() { return origin; }
+
+  /// Check is this ObjMsgData is from 'origin'
+  /// @param origin: the origin to test
+  /// @return boolean result
   bool IsFrom(int16_t origin) { return this->origin == origin; }
+
+  /// ObjMsgData name accessor 
+  /// @return the name
   string &GetName() { return name; }
 
+  /// Create new ObjMsgDataRef by deseerializing 'json'
+  /// @param origin - origin for ne object
+  /// @param json: content to deserialize
+  /// @return created ObjMsgDataRef
   static ObjMsgDataRef Deserialize(uint16_t origin, char const *json) {
     return dataFactory.Deserialize(origin, json);
   }
 
+  /// Register object creator function 'fn' to create object for endpoint 'name'
+  /// @param origin - origin to register
+  /// @param name - name to register
+  /// @param fn - Create function
+  /// @return bool registratin successful
   static bool RegisterClass(uint16_t origin, string name, ObjMsgDataRef (*fn)(uint16_t, char const *))
   {
     return dataFactory.RegisterClass(origin, name, fn);
   }
 
-  /** Populate value from the contents of 'json'
-   */
+  /// Populate value from the contents of 'json'
+  /// @param json: JSON content to parse
+  /// @return boolean success
   virtual bool DeserializeValue(cJSON *json) = 0;
 
-  /** serialize this object into a JSON string */
+  /// serialize this object into a JSON string
+  /// @param json: out value
+  /// @return boolean success
   virtual int Serialize(string &json) = 0;
 
-  /** Create a string that represents this object's value */
+  /// Get value as string
+  /// @param str: out value
+  /// @return true if can be represented as string
   virtual bool GetValue(string &str) = 0;
+  /// Get value as integer
+  /// @param val: out value 
+  /// @return true if can be represented as integer
   virtual bool GetValue(int &val) = 0;
+  ///  Get value as double
+  /// @param val: out value 
+  /// @return true if can be represented as double
   virtual bool GetValue(double &val) = 0;
 
-  /** Create a string that conveys the value of this object
-   *
-   * This will contain, for example, a number for a scalar numeric
-   * value, or a JSON object for a complex value.
-   */
 };
 
 /*
@@ -167,8 +195,8 @@ constexpr auto type_name() -> std::string
 }
 #endif
 
-/** Templatized ObjMsgData class
- */
+/// Templatized ObjMsgData class
+/// @tparam T: data type
 template <class T>
 class ObjMsgDataT : public ObjMsgData
 {
@@ -176,8 +204,10 @@ protected:
   /** The (template specific) binary value */
   T value;
 
-  /** Constructor */
-  ObjMsgDataT(uint16_t origin, char const *name) 
+  /// Constructor
+  /// @param origin: data origin
+  /// @param name: data object name
+  ObjMsgDataT(uint16_t origin, char const *name)
 #ifdef RESOLVE_TYPES_FOR_LOGGING
   : ObjMsgData("ObjMsgDataT<" + type_name<T>() + ">")
 #else
@@ -191,7 +221,9 @@ protected:
 public:
   bool GetRawValue(T &out) { out = value; return true; }
 
-  // Default implementation (unquoted for numbers and objects)
+  /// Serialize to JSON string
+  /// @param json: out value
+  /// @return ESP_OK or error value
   int Serialize(string &json)
   {
     string val;
@@ -201,7 +233,7 @@ public:
     return 0;
   }
 
-  /** MANDATORY vitrual destructor */
+  /// MANDATORY vitrual destructor
   ~ObjMsgDataT() {}
 };
 
@@ -214,11 +246,15 @@ public:
  *               |__/          |___/
  */
 
-/** ObjMsgData with integer scalar value */
+/// ObjMsgDataT<int>, integer scalar value
 class ObjMsgDataInt : public ObjMsgDataT<int>
 {
 protected:
 public:
+  /// Constructor
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
   ObjMsgDataInt(uint16_t origin, char const *name, int value)
       : ObjMsgDataT<int>(origin, name)
   {
@@ -226,22 +262,31 @@ public:
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataInt(%u, %s, %d) constructed", origin, name, value);
   }
 
+  /// Destrructor
   ~ObjMsgDataInt()
   {
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataInt destructed");
   }
 
+  /// Create object and return in ObjMsgDataRef
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name, int value)
   {
     return std::make_shared<ObjMsgDataInt>(origin, name, value);
   }
 
+  /// @brief 
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataInt>(origin, name, 0);
   }
 
-  // Common implementation for integer values
   bool DeserializeValue(cJSON *json)
   {
     cJSON *valueObj = cJSON_GetObjectItem(json, "value");
@@ -281,10 +326,14 @@ public:
  *               |__/          |___/
  */
 
-/** ObjMsgData with floating point scalar value */
+// ObjMsgDataT<double>, floating point scalar value 
 class ObjMsgDataFloat : public ObjMsgDataT<double>
 {
 public:
+  /// Constructor
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
   ObjMsgDataFloat(uint16_t origin, char const *name, double value)
       : ObjMsgDataT<double>(origin, name)
   {
@@ -292,15 +341,26 @@ public:
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataFloat(%u, %s, %f) constructed", origin, name, value);
   }
 
+  /// Destructor
   ~ObjMsgDataFloat()
   {
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataFloat destructed");
   }
 
+  /// Create object and return in ObjMsgDataRef
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataFloat>(origin, name, 0);
   }
+
+  /// Create object and return in ObjMsgDataRef
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name, double value)
   {
     return std::make_shared<ObjMsgDataFloat>(origin, name, value);
@@ -349,7 +409,7 @@ public:
  *               |__/          |___/                                      |___/
  */
 
-/** ObjMsgData with std::string object value 
+/** ObjMsgData<std::string>, string value
  * 
  * Note that if this is constructed with asJson = True, the
  * (presumably json) string value is serialized without quotes.
@@ -359,22 +419,38 @@ class ObjMsgDataString : public ObjMsgDataT<string>
 protected:
   bool asJson;
 public:
+  /// Constructor
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
+  /// @param asJson: specify JSON object value rather than string
   ObjMsgDataString(uint16_t origin, char const *name, const char *value, bool asJson = false)
       : ObjMsgDataT<string>(origin, name), asJson(asJson)
   {
     this->value = value;
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataString(%u, %s, %u) constructed", origin, name, value);
   }
+  /// Destructor
   ~ObjMsgDataString()
   {
     // ESP_LOGI(TAG.c_str(), "ObjMsgDataString destructed");
   }
 
+  /// Create object and return in ObjMsgDataRef
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @param value: initial value
+  /// @param asJson: specify JSON object value rather than string
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name, const char *value, bool asJson = false)
   {
     return std::make_shared<ObjMsgDataString>(origin, name, value, asJson);
   }
 
+  /// Create object and return in ObjMsgDataRef
+  /// @param origin: Data origin
+  /// @param name: Data object name
+  /// @return created object
   static ObjMsgDataRef Create(uint16_t origin, char const *name)
   {
     return std::make_shared<ObjMsgDataString>(origin, name, "");

@@ -4,7 +4,7 @@
 
 #include "ObjMsg.h"
 
-enum GpioFlags // GPIO flags (_GF)
+enum GpioFlags ///< GPIO flags (_GF)
 {
   INVERTED_GF = 0x01,
   POS_EVENT_GF = 0x04, // POS / NEG edge when inverted applied
@@ -21,14 +21,19 @@ inline GpioFlags operator|(GpioFlags a, GpioFlags b)
 typedef ObjMsgDataInt ObjMsgGpioData;
 class GpioHost;
 
+/// A GPIO Port hosted by GpioHost
 class GpioPort
 {
 public:
-  /** Default constructor to support map */
+  /// Default constructor to support map 
   GpioPort() {}
-  /** 
-   * 
-   */
+
+  /// Instantiate  'pin' on 'host' as 'name' operating in 'mode' and confgured using 'flags
+  /// @param name: Data object name 
+  /// @param pin: GPIO number
+  /// @param mode: Sampling mode (manual vs event)
+  /// @param flags: GpioFlags specifying configuration
+  /// @param host: host of this port
   GpioPort(string name, gpio_num_t pin, ObjMsgSample mode, GpioFlags flags, GpioHost *host)
   {
     this->host = host;
@@ -39,6 +44,8 @@ public:
     changed = 0;
   }
 
+  /// Value accessor
+  /// @return port value
   int GetValue()
   {
     return value;
@@ -53,6 +60,7 @@ public:
   uint8_t value; // Measured value
 };
 
+/// ObjMsgHost, hosing GPIO Ports
 class GpioHost : public ObjMsgHost
 {
 public:
@@ -60,12 +68,21 @@ public:
   bool anyChangeEvents;
   QueueHandle_t event_queue;
 
+  /// Constructor, specifying transport object and origin
+  /// @param transport: Transport object
+  /// @param origin: Origin ID for this host
   GpioHost(ObjMsgTransport &transport, uint16_t origin)
       : ObjMsgHost(transport, "GpioHost", origin)
   {
     event_queue = NULL;
   }
 
+  /// Add 'pin' as 'name', to operate in 'mode' and configured by 'flags'
+  /// @param name: Data object name 
+  /// @param pin: GPIO number
+  /// @param mode: Sampling mode (manual vs event)
+  /// @param flags: GpioFlags specifying configuration
+  /// @return created GpioPort
   GpioPort *Add(string name, gpio_num_t pin, ObjMsgSample mode, GpioFlags flags)
   {
     ports[name] = GpioPort(name, pin, mode, flags, this);
@@ -132,6 +149,9 @@ public:
     return true;
   }
 
+  /// Measure port named 'name' 
+  /// @param name: Name of port to measure
+  /// @return measured value, or INT_MIN if 'name' is not a GpioPort
   int Measure(string name)
   {
     GpioPort *port = GetPort(name);
@@ -142,6 +162,9 @@ public:
     return INT_MIN;
   }
 
+  /// Measure 'port'
+  /// @param channel: GpioPort to measure
+  /// @return measured value
   bool Measure(GpioPort *port)
   {
     // consider IS_INPUT_GF

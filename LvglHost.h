@@ -28,29 +28,44 @@ class LvglHost : public ObjMsgHost
   } control_reg_def_t;
 
 public:
+  /// Constructor, specifying transport object and origin 
+  /// @param transport: Transport object
+  /// @param origin: Origin ID for this host
   LvglHost(ObjMsgTransport &transport, uint16_t origin)
       : ObjMsgHost(transport, "LVGL", origin)
   {
   }
 
+  /// add function 'consumer' as virtual consumer for data 'name' 
+  /// @param name: Data object name 
+  /// @param consumer: virtual consumer function
+  /// @return boolean success
   int AddVirtualConsumer(const char *name, lvglVirtualComsumer consumer)
   {
     virtual_consume_map[name] = consumer;
-    // Note: event code is NOT used for a counsumer
-    // control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL };
-    // consume_map[name] = def;
 
     return true;
   }
 
+  /// Add 'control' of type 'binding' as consumer of data 'name' 
+  /// @param name: Data object name 
+  /// @param control: LVGL object pointer
+  /// @param  binding: ControlType 
+  /// @return boolean success
   int AddConsumer(const char *name, lv_obj_t *control, enum ControlType binding)
   {
-    // Note: event code is NOT used for a counsumer
+    // Note: eventCode member of control_reg_def_t is NOT used for a counsumer
     control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = LV_EVENT_ALL};
     consume_map[name] = def;
 
     return true;
   }
+  /// Add 'control' of type 'binding' as producer of data 'name' upon 'eventCode' 
+  /// @param name: Data object name 
+  /// @param control: LVGL object pointer
+  /// @param  binding: ControlType 
+  /// @param eventCode: Event that triggers production
+  /// @return boolean success
   int AddProducer(const char *name, lv_obj_t *control, enum ControlType binding, lv_event_code_t eventCode)
   {
     control_reg_def_t def = {.name = name, .obj = control, .type = binding, .eventCode = eventCode};
@@ -58,7 +73,6 @@ public:
 
     // Store this object in user_data for lookup
     lv_obj_add_event_cb(control, produce_cb, eventCode, this);
-    // printf("Registering %s: %p\n", name, control);
 
     return true;
   }
@@ -68,7 +82,7 @@ public:
     return true;
   }
 
-  BaseType_t Produce(ObjMsgDataRef data)
+  bool Produce(ObjMsgDataRef data)
   {
     return transport.Send(data);
   }

@@ -6,10 +6,10 @@
 // Constructor for static datafactory in ObjMsgData
 ObjMsgDataFactory ObjMsgData::dataFactory;
 
- BaseType_t ObjMsgHost::Produce(ObjMsgDataRef data)
-  {
-    return transport.Send(data);
-  }
+bool ObjMsgHost::Produce(ObjMsgDataRef data)
+{
+  return transport.Send(data);
+}
 
 
 /** register object creator function 'fn' to create object for endpoint 'name' */

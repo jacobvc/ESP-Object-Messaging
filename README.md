@@ -1,7 +1,7 @@
 # ESP-Object-Messaging
 Object oriented messaging for ESP32 with JSON encoding
 
-Support for relativly simple integration of components into an application 
+Support for relatively simple integration of components into an application 
 that operates based on exchanging messages conveying C++ objects.
 
 The content is conveyed as ObjMsgDataRef, a std:shared_ptr to a ObjMsgData
@@ -13,6 +13,8 @@ The transport mechanism is a ObjMsgTransport object which supports Send() and Re
 Information is produced and transported by a resource host using 
 ObjMsgHost Produce(), received (at a single point) using 
 ObjMsgTransport Receive(), and distributed to desired endpoints using ObjMsgHost Consume().
+
+# Classes
 
 ## ObjMsgData
 All data is exchanged using objects derived from ObjMsgData base class
@@ -32,12 +34,17 @@ it (with or without data content) within an ObjMsgDataRef
 
 Implements GetRawValue() to access the underlying binary value.
 
+### ObjMsgDataT Implementations
+Base ObjMsgDataT implementations include ObjMsgDataInt, ObjMsgDataFloat, and ObjMsgDataString
+
+A virtual ObjMsgDataT, ObjMsgJoystickData, is included
+
 ## ObjMsgDataRef
 A std::shared_ptr encoding ObjMsgData.
 
 ## ObjMsgTransport
 ObjMsgTransport intantiates a freertos 'message_queue' which sends and receives
-message's, carrying data as ObjMsgDataRef.
+messages, carrying data as ObjMsgDataRef.
 
 Send() creates a new message containing the provided 'data' and enqueues it to be sent
 
@@ -54,6 +61,9 @@ content as a ObjMsgDataRef.
 
  Each host may also consume content, and  must support that by implementing Consume() which is typically called by the application 
  (controller) to deliver ObjMsgData.
+
+### ObjMsgHost Implementations
+Example implementations include AdcHost, GpioHost, ServoHost, WebsocketHost, LvglHost, JoystickHost, 
 
 ## ObjMsgDataFactory
  The ObjMsgDataFactory supports creation of a ObjMsgData object based on received data. Each endpoint supporting

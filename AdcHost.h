@@ -1,9 +1,3 @@
-/** @file
- *
- * The AdcHost class provides for operation of
- * analog inputs
- *
- */
 #pragma once
 
 #include "esp_adc/adc_oneshot.h"
@@ -13,14 +7,21 @@
 
 typedef ObjMsgDataInt ObjMsgAdcData;
 
+/// A channel hosted by AdcHost
 class AdcChannel
 {
 public:
-  /** Default constructor to support map */
+  /// Default constructor to support map 
   AdcChannel() {}
-  /** Add 'channel' with range from zero to 'maxCount',
-   * and scaling from 'min' to 'max'
-   */
+
+  /// Instantiate 'channel' with range from zero to 'maxCount',
+  /// and scaling from 'min' to 'max'
+  /// @param channel: ADC Channel
+  /// @param mode: Sampling mode (manual vs event)
+  /// @param maxCount: ADC channel configured max value
+  /// @param min: Calculated value for ZERO count
+  /// @param max: Calculated value for maxCount
+  /// @param hysteresis: Minimum value change for new event
   AdcChannel(adc_channel_t channel, ObjMsgSample mode, int maxCount,
              int min, int max, int hysteresis = 5)
   {
@@ -39,21 +40,21 @@ public:
     this->hysteresis = hysteresis;
   }
 
-  /** Set a known value reference point for the current
-   * sample.
-   */
+  /// Set a known value reference point for the current sample.
+  /// @param reference: Known value
   void SetReference(int reference)
   {
     vRefX2 = reference * 2;
     rRef = raw;
   }
 
-  /** Calculate the scaled value for 'rawAdc' measurement.
-   *
-   * Calculate the 2X value using the segments {0, vMinX2} to {rRef, vRefX2}
-   * and {rRef, vRefX2} to {rMax, vMaxX2},
-   * one of which may be zero length, then round to value
-   */
+  /// Calculate the scaled value for 'rawAdc' measurement.
+  /// 
+  /// Calculate the 2X value using the segments {0, vMinX2} to {rRef, vRefX2}
+  /// and {rRef, vRefX2} to {rMax, vMaxX2},
+  /// one of which may be zero length, then round to value
+  /// @param rawAdc: The raw measurement
+  /// @return calculated value
   int SetValue(int rawAdc)
   {
     // Cap at measurement range
@@ -85,19 +86,24 @@ public:
 
 protected:
   // Raw variables
-  int raw;  // Raw measurement
-  int rMax; // Max raw count (min is zero)
-  int rRef; // Raw count reference point
+  int raw;  ///< Raw measurement
+  int rMax; ///< Max raw count (min is zero)
+  int rRef; ///< Raw count reference point
   // Value variables
-  int vMinX2; // Min value
-  int vMaxX2; // Max value
-  int vRefX2; // Value at reference point
-  int value;  // Measured value
+  int vMinX2; ///< Min value
+  int vMaxX2; ///< Max value
+  int vRefX2; ///< Value at reference point
+  int value;  ///< Measured value
 };
 
+/// ObjMsgHost, hosting ADC_UNIT_1
 class AdcHost : public ObjMsgHost
 {
 public:
+  /// Constructor, specifying transport object, origin, and samlpe interval
+  /// @param transport: Transport object
+  /// @param origin: Origin ID for this host
+  /// @param sampleIntervalMs: sampling interval for event detection
   AdcHost(ObjMsgTransport &transport, uint16_t origin, 
     TickType_t sampleIntervalMs)
       : ObjMsgHost(transport, "AdcHost", origin)
@@ -112,6 +118,17 @@ public:
     this->sampleIntervalMs = sampleIntervalMs;
   }
 
+  /// Add 'channel' as 'name', configured with 'atten', 'bitwidth', and 'maxCounts'
+  /// to operate in 'mode' and produce values from 'min' to 'max'.
+  /// @param name: Data object name 
+  /// @param mode: Sampling mode (manual vs event)
+  /// @param channel: ADC Channel
+  /// @param atten 
+  /// @param bitwidth 
+  /// @param maxCounts: ADC channel configured max value
+  /// @param min: Calculated value for ZERO count
+  /// @param max: Calculated value for maxCount
+  /// @return added channel
   AdcChannel *Add(string name, ObjMsgSample mode, adc_channel_t channel, 
     adc_atten_t atten, adc_bitwidth_t bitwidth,
     int16_t maxCounts, int32_t min, int32_t max)
@@ -135,6 +152,9 @@ public:
     return tmp;
   }
 
+  /// Measure channel named 'name' 
+  /// @param name: Name of channel to measure
+  /// @return measured value, or INT_MIN if 'name' is not an AdcChannel
   int Measure(string name)
   {
     AdcChannel *channel = GetChannel(name);
@@ -145,6 +165,9 @@ public:
     return INT_MIN;
   }
 
+  /// Measure 'channel'
+  /// @param channel: Channel to measure
+  /// @return measured value
   int Measure(AdcChannel *channel)
   {
     int rawValue;
