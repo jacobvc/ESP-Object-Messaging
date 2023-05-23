@@ -9,7 +9,8 @@
 
 // LED Patterns; 16 member sequence of LED On/Off bits, applied at 250ms interval
 #define LED_PATTERN_CONNECTING 0x3333    // 1 sec beat
-#define LED_PATTERN_PROVISIONING 0x555f // 1 long, 5 short      0x5555  // 1/2 sec beat
+#define LED_PATTERN_PROVISIONING 0x55ee // 2 long, 4 short      0x5555  // 1/2 sec beat
+#define LED_PATTERN_GOT_PW  0x5555  // 1/2 sec beat
 
 /** WiFi / httpd / Websocket ObjMsgHost with Smartconfig commissioning
  * 

@@ -368,7 +368,7 @@ void WebsocketHost::ScEventHandler(void *arg, esp_event_base_t event_base,
   else if (event_id == SC_EVENT_GOT_SSID_PSWD)
   {
     ESP_LOGI(host->TAG.c_str(), "Got SSID and password");
-    host->ledPattern = LED_PATTERN_CONNECTING;
+    host->ledPattern = LED_PATTERN_GOT_PW;
 
     smartconfig_event_got_ssid_pswd_t *evt = (smartconfig_event_got_ssid_pswd_t *)event_data;
     wifi_config_t wifi_config;
@@ -449,10 +449,9 @@ void WebsocketHost::BlinkTask(void *arg)
 {
   WebsocketHost *host = (WebsocketHost *)arg;
   int counter = 0;
-  gpio_set_direction(host->led, GPIO_MODE_OUTPUT);
   for (;;)
   {
-    //printf("blink\n");
+    //printf("blink %d: %04x\n", host->led, (host->ledPattern & 1 << (counter % 16))? 1 : 0);
     gpio_set_level(host->led, (host->ledPattern & 1 << (counter % 16))? 1 : 0);
     vTaskDelay(250 / portTICK_PERIOD_MS);
     ++counter;

@@ -6,16 +6,17 @@
 
 enum GpioFlags ///< GPIO flags (_GF)
 {
+  DEFAULT_GF  = 0,
   INVERTED_GF = 0x01,
   POS_EVENT_GF = 0x04, // POS / NEG edge when inverted applied
   NEG_EVENT_GF = 0x08,
   IS_INPUT_GF = 0x10,
   PULLDOWN_GF = 0x20,
-  PULLUP_GF = 0x20,
+  PULLUP_GF = 0x40,
 };
 inline GpioFlags operator|(GpioFlags a, GpioFlags b)
 {
-    return static_cast<GpioFlags>(static_cast<int>(a) | static_cast<int>(b));
+  return static_cast<GpioFlags>(static_cast<int>(a) | static_cast<int>(b));
 }
 
 typedef ObjMsgDataInt ObjMsgGpioData;
@@ -25,11 +26,11 @@ class GpioHost;
 class GpioPort
 {
 public:
-  /// Default constructor to support map 
+  /// Default constructor to support map
   GpioPort() {}
 
   /// Instantiate  'pin' on 'host' as 'name' operating in 'mode' and confgured using 'flags
-  /// @param name: Data object name 
+  /// @param name: Data object name
   /// @param pin: GPIO number
   /// @param mode: Sampling mode (manual vs event)
   /// @param flags: GpioFlags specifying configuration
@@ -78,7 +79,7 @@ public:
   }
 
   /// Add 'pin' as 'name', to operate in 'mode' and configured by 'flags'
-  /// @param name: Data object name 
+  /// @param name: Data object name
   /// @param pin: GPIO number
   /// @param mode: Sampling mode (manual vs event)
   /// @param flags: GpioFlags specifying configuration
@@ -98,29 +99,53 @@ public:
     gpio_config_t io_conf;
 
     if (flags & IS_INPUT_GF) // configure GPIO with the given settings
-    { 
+    {
       // INPUT
-      io_conf.mode = GPIO_MODE_INPUT;               // set as input mode
-      io_conf.intr_type = EdgeConfig(flags);        // interrupt of both edges
+      io_conf.mode = GPIO_MODE_INPUT;        // set as input mode
+      io_conf.intr_type = EdgeConfig(flags); // interrupt of both edges
     }
     else
     {
       // OUTPUT
-      io_conf.mode = GPIO_MODE_OUTPUT;              // set as output mode
-      io_conf.intr_type = GPIO_INTR_DISABLE;        // disable interrupt
+      io_conf.mode = GPIO_MODE_OUTPUT;       // set as output mode
+      io_conf.intr_type = GPIO_INTR_DISABLE; // disable interrupt
     }
-    io_conf.pin_bit_mask = 1ull << pin;           // bit mask of the pins, use GPIO4/5 here
+    io_conf.pin_bit_mask = 1ull << pin; // bit mask of the pins, use GPIO4/5 here
     io_conf.pull_down_en = (flags & PULLDOWN_GF) ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = (flags & PULLUP_GF) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
-    
+
     gpio_config(&io_conf);
-    
+    gpio_set_direction(pin, io_conf.mode);
+
     return tmp;
   }
 
   bool Consume(ObjMsgData *data)
   {
-    // consider NOT IS_INPUT_GF
+    GpioPort *port = GetPort(data->GetName());
+    if (port)
+    {
+      int level;
+      if (data->GetValue(level))
+      {
+        uint8_t flags = port->flags;
+        if (!(flags & IS_INPUT_GF))
+        {
+          if (flags & INVERTED_GF)
+          {
+            level = !level;
+          }
+          gpio_set_level(port->pin, level);
+        }
+        else {
+           ESP_LOGE(TAG.c_str(), "%s, Cannot consume GPIO input", data->GetName().c_str());
+        }
+      }
+      else
+      {
+        ESP_LOGW(TAG.c_str(), "GPIO %s not found", data->GetName());
+      }
+    }
     return false;
   }
 
@@ -149,7 +174,7 @@ public:
     return true;
   }
 
-  /// Measure port named 'name' 
+  /// Measure port named 'name'
   /// @param name: Name of port to measure
   /// @return measured value, or INT_MIN if 'name' is not a GpioPort
   int Measure(string name)
