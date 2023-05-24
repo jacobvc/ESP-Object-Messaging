@@ -1,0 +1,37 @@
+{
+  "variables": [
+    "ui_btnSample",
+    "ui_lblPressure",
+    "ui_arcZoomX",
+    "ui_sldZoomY",
+    "ui_calSchedule"
+  ],
+  "values": {
+    "ui_btnSample_name": "sample",
+    "ui_btnSample_type": "BUTTON_CT",
+    "ui_btnSample_con": true,
+    "ui_btnSample_pro": true,
+    "ui_btnSample_evt": "LV_EVENT_CLICKED",
+    "ui_lblPressure_name": "pressure",
+    "ui_lblPressure_type": "LABEL_CT",
+    "ui_lblPressure_con": true,
+    "ui_lblPressure_pro": false,
+    "ui_lblPressure_evt": "LV_EVENT_VALUE_CHANGED",
+    "ui_arcZoomX_name": "zoomx",
+    "ui_arcZoomX_type": "ARC_CT",
+    "ui_arcZoomX_con": true,
+    "ui_arcZoomX_pro": true,
+    "ui_arcZoomX_evt": "LV_EVENT_VALUE_CHANGED",
+    "ui_sldZoomY_name": "zoomy",
+    "ui_sldZoomY_type": "SLIDER_CT",
+    "ui_sldZoomY_con": true,
+    "ui_sldZoomY_pro": true,
+    "ui_sldZoomY_evt": "LV_EVENT_VALUE_CHANGED",
+    "ui_calSchedule_name": "schedule",
+    "ui_calSchedule_type": "CALENDAR_CT",
+    "ui_calSchedule_con": true,
+    "ui_calSchedule_pro": true,
+    "ui_calSchedule_evt": "LV_EVENT_VALUE_CHANGED",
+    "notes": "'Screen1' name prefix not supported\n'Label2' name prefix not supported\n'Label1' name prefix not supported\n'___initial_actions0' name prefix not supported"
+  }
+}

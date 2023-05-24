@@ -1,0 +1,9 @@
+description: Esp32IoAdapter Example with Websocket
+
+dependencies:
+  idf: ">=5.0"
+  ObjMessaging:
+    git: https://github.com/jacobvc/ESP-Object-Messaging
+  Esp32IoAdapt:
+    path: Esp32IoAdapt/src
+    git: https://github.com/jacobvc/ESP32-Hardware-Boards

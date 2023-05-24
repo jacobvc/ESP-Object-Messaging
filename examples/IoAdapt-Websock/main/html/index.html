@@ -1,0 +1,174 @@
+<html>
+
+<head>
+  <script src="joy.js"></script>
+  <script>
+    var ws = null;
+    var zoom, pantilt;
+    window.onbeforeunload = () => {
+      // ws.flush();
+      ws.close(1000, "Work Complete");
+      // return "Should have disconnected";
+    };
+    function connect() {
+      if (ws) {
+        ws.close();
+      }
+      ws = new WebSocket('ws://' + location.host + '/ws');
+      status("connecting");
+
+      ws.onopen = function (e) {
+        status("");
+      };
+
+      ws.onclose = function (event) {
+        if (event.wasClean) {
+          status("Connection closed cleanly, code=${event.code} reason=${event.reason}. Trying to reconnect");
+        } else {
+          // e.g. server process killed or network down
+          // event.code is usually 1006 in this case
+          status('Connection died. Trying to reconnect');
+        }
+        setTimeout(function () {
+          connect();
+        }, 3000)
+      };
+
+      ws.onerror = function (error) {
+        status(`[error] ${error.message}`);
+      };
+
+      ws.onmessage = evt => {
+        var obj = JSON.parse(evt.data);
+        var elem = document.getElementById(obj.name);
+        if (elem) {
+          switch (obj.name) {
+            case 'pantilt':
+              pantilt.SetX(obj.value.x);
+              pantilt.SetY(obj.value.y);
+              break;
+            case "zoom":
+              zoom.SetX(obj.value.x);
+              zoom.SetY(obj.value.y);
+              break;
+            case 'zoom_slider':
+              document.querySelector('#zoom_slider').value = obj.value;
+              break;
+            case 'pantilt_slider':
+              document.querySelector('#pantilt_slider').value = obj.value;
+              break;
+            default:
+              console.log('Object "' + obj.name + '" not found');
+              break;
+          }
+        }
+        else {
+          console.log('Element "' + obj.name + '" not found');
+        }
+      };
+    };
+
+    window.onload = () => {
+      zoom = new JoyStick('zoom',
+        { "internalStrokeColor": "Black", "internalFillColor": "Gray" },
+        function (stickData) {
+          var param;
+          param = JSON.stringify({ "name": "zoom", "value": { "x": parseInt(stickData.x), "y": parseInt(stickData.y), "up": 0 } });
+          ws.send(param);
+        });
+      pantilt = new JoyStick('pantilt',
+        { "internalStrokeColor": "Black", "internalFillColor": "Gray" },
+        function (stickData) {
+          var param;
+          param = JSON.stringify({ "name": "pantilt", "value": { "x": parseInt(stickData.x), "y": parseInt(stickData.y), "up": 0 } });
+          ws.send(param);
+        });
+
+      connect();
+    }
+
+    function status(text) {
+      document.querySelector('#status').innerText = text;
+      if (text.length > 0) {
+        document.querySelector('#status').classList.add("error")
+      }
+      else {
+        document.querySelector('#status').classList.remove("error")
+      }
+    }
+    function setDate() {
+      var d = new Date();
+      var param;
+      param = JSON.stringify( {"name": "schedule", "value": { "year": d.getFullYear(), 
+        "month": d.getMonth(), "day": d.getDate() } });
+      console.log(param);
+      ws.send(param);
+   }
+    function changeSlider(elmt, value) {
+      var param;
+      param = JSON.stringify({ "name": elmt.id, "value": parseInt(value) });
+      //document.querySelector('#position').value = value;
+      ws.send(param);
+    }
+  </script>
+  <style>
+    h2,
+    h3 {
+      margin: 2px;
+    }
+
+    .enclose {
+      background-color: gainsboro;
+      border-radius: 10px;
+      width: fit-content;
+      padding: 10px;
+    }
+
+    .error {
+      margin: 5px;
+      padding: 2px;
+      border: 2px solid black;
+      color: red;
+      background-color: white;
+    }
+
+    input[type="range"] {
+      appearance: slider-vertical;
+      width: 20px;
+      height: 160px;
+    }
+
+    .joystick {
+      display: inline-block;
+      width: 160px;
+      height: 160px;
+      margin: 5px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="enclose">
+    <h2>
+      <center>ESP32 I/O Adapter Board</center>
+    </h2>
+
+    <input type="range" min="0" max="100" value="50" id="zoom_slider" step="1" orient="vertical"
+      oninput="changeSlider(this, value)">
+    <div id="zoom" class="joystick">
+      <h3>
+        <center>Zoom</center>
+      </h3>
+    </div>
+
+    <input type="range" min="0" max="100" value="50" id="pantilt_slider" step="1" orient="vertical"
+      oninput="changeSlider(this, value)">
+    <div id="pantilt" class="joystick">
+      <h3><center>Pan / Tilt</center></h3>
+    </div>
+    <div><button type="button" onclick="setDate()">Set Calendar</button></div>
+    <div id="status"></div>
+  </div>
+</body>
+
+</html>
