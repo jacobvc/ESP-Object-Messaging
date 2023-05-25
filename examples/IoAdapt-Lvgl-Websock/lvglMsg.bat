@@ -1,2 +1,2 @@
-managed_components\Messaging\tools\ui_bind.py -wmain
+managed_components\ObjMessaging\tools\ui_bind.py -wmain
 pause
