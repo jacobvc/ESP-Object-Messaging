@@ -109,7 +109,7 @@ static void MessageTask(void *pvParameters)
   }
 }
 
-extern "C" void app_main(void)
+void MessagingInit()
 {
   // Configure and start joysticks
   joysticks.Add(PT_JOY_NAME, CHANGE_EVENT,
@@ -145,4 +145,9 @@ extern "C" void app_main(void)
   ws.Start();
   // Have transport forward messages to ws
   transport.AddForward(&ws);
+}
+
+extern "C" void app_main(void)
+{
+  MessagingInit();
 }
