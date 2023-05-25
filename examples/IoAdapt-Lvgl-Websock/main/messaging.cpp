@@ -3,50 +3,52 @@
 #include "GpioHost.h"
 #include "JoystickHost.h"
 #include "ServoHost.h"
-#include "LvglHost.h"
-#include "messaging.h"
 #include "Esp32IoAdapt.h"
-
+#include "LvglHost.h"
 #include "WebsocketHost.h"
+
+#include "messaging.h"
 
 #include <unordered_map>
 
 #define TAG "APP"
 
-// Pan-tilt Slider and joystick pin/channel assignments
+// Pan-tilt Slider and joystick connectors
 #define PT_SLIDER IA_GVI1_CHAN
 
 #define PT_JOY_PINS IA_GVIIS1_PINS
 #define PT_JOY_CHANS IA_GVIIS1_CHANS
 
-// Zoom Slider and joystick pin/channel assignments
+// Zoom Slider and joystick connectors
 #define ZOOM_SLIDER IA_GVI2_CHAN
 
 #define ZOOM_JOY_PINS IA_GVSSS1_PINS
 #define ZOOM_JOY_CHANS IA_GVSSS1_CHANS
 
-// Servo pin assignments
+// Servo connector / pin 
 #define ZOOM_SERVO_X_PIN IA_GVS1_PIN
 
-// LED Output pins
+// LED Output connector / pins
 #define LED_OUT_PINS IA_GVSS1_PINS
 
 // Sample intervals
 #define SAMPLE_INTERVAL_MS 100
 
-// Component names
+// Device / Data names
 #define PT_JOY_NAME "pantilt"
 #define PT_SLIDER_NAME "pantilt_slider"
 #define ZOOM_JOY_NAME "zoom"
 #define ZOOM_SLIDER_NAME "zoom_slider"
 #define ZOOM_SERVO_X_NAME "zoom_servo_x"
 
+#define ZOOM_X_GT_0 "zoom_x_gt_0"
+#define ZOOM_Y_GT_0 "zoom_y_gt_0"
+
+
 // Define LED for WebsocketHost
 #define WEBSOCK_LED LED_OUT_PINS[0] // GPIO_NUM_NC to not use
 
-#define USE_LVGL
-
-// Origin IDs
+// Origin IDs (not all used here; same for all examples)
 enum Origins
 {
   ORIGIN_CONTROLLER,
@@ -74,18 +76,18 @@ TaskHandle_t MessageTaskHandle;
 // Transport
 ObjMsgTransport transport(MSG_QUEUE_MAX_DEPTH);
 
-// Component hosts
+// ObjMsgHosts
 AdcHost adc(transport, ORIGIN_ADC, SAMPLE_INTERVAL_MS);
 GpioHost gpio(transport, ORIGIN_GPIO);
 
 JoystickHost joysticks(adc, gpio, transport, ORIGIN_JOYSTICK, SAMPLE_INTERVAL_MS);
 ServoHost servos(transport, ORIGIN_SERVO);
-#ifdef USE_LVGL
 LvglHost lvgl(transport, ORIGIN_LVGL);
-#endif
 WebsocketHost ws(transport, ORIGIN_WEBSOCKET, WEBSOCK_LED, false);
 
-// Implementation
+//
+// Message Task
+//
 static void MessageTask(void *pvParameters)
 {
   ObjMsgDataRef dataRef;
@@ -99,16 +101,23 @@ static void MessageTask(void *pvParameters)
       ObjMsgJoystickData *jsd = static_cast<ObjMsgJoystickData *>(data);
       if (jsd && jsd->GetName().compare(ZOOM_JOY_NAME) == 0)
       {
+        // Application processing of the zoom joystick
+
+        // Get the sample value
         joystick_sample_t sample;
         jsd->GetRawValue(sample);
+
+        // Move the servo to the position dictated by the x position
         ObjMsgServoData servo(jsd->GetOrigin(), ZOOM_SERVO_X_NAME, sample.x);
         servos.Consume(&servo);
-        ObjMsgDataInt x(jsd->GetOrigin(), "zoom_x", sample.x > 0);
-        gpio.Consume(&x);
-        ObjMsgDataInt y(jsd->GetOrigin(), "zoom_y", sample.y > 0);
-        gpio.Consume(&y);
 
+        // Rurn on corresponding LED when x / y > 0
+        ObjMsgDataInt x(jsd->GetOrigin(), ZOOM_X_GT_0, sample.x > 0);
+        gpio.Consume(&x);
+        ObjMsgDataInt y(jsd->GetOrigin(), ZOOM_Y_GT_0, sample.y > 0);
+        gpio.Consume(&y);
       }
+      // Show all of the messages
       string str;
       data->Serialize(str);
       ESP_LOGI(TAG, "(%s) JSON: %s", origins[data->GetOrigin()], str.c_str());
@@ -116,9 +125,9 @@ static void MessageTask(void *pvParameters)
   }
 }
 
-/** Example LVGL virtual consumer
- *  
- */
+//
+// Example LVGL virtual consumer
+//  
 bool LvglJoystickComsumer(LvglHost *host, ObjMsgData *data)
 {
   ObjMsgJoystickData *jsd = static_cast<ObjMsgJoystickData *>(data);
@@ -142,6 +151,9 @@ bool LvglJoystickComsumer(LvglHost *host, ObjMsgData *data)
   }
 }
 
+//
+// Messaging Entry point
+//
 void MessagingInit()
 {
   // Configure and start joysticks
@@ -163,18 +175,16 @@ void MessagingInit()
   adc.Start();
 
   // Configure and start GPIO
-  gpio.Add("zoom_x", LED_OUT_PINS[0], POLLING, DEFAULT_GF);
-  gpio.Add("zoom_y", LED_OUT_PINS[1], POLLING, DEFAULT_GF);
+  gpio.Add(ZOOM_X_GT_0, LED_OUT_PINS[0], POLLING, DEFAULT_GF);
+  gpio.Add(ZOOM_Y_GT_0, LED_OUT_PINS[1], POLLING, DEFAULT_GF);
   gpio.Start();
 
   // Configure and start lvgl
-  #ifdef USE_LVGL
   LvglBindingInit(lvgl);
   lvgl.AddVirtualConsumer(ZOOM_JOY_NAME, LvglJoystickComsumer);
   lvgl.Start();
   // Have transport forward messages to lvgl
   transport.AddForward(&lvgl);
-  #endif
 
    xTaskCreate(MessageTask, "MessageTask",
               CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 1024, NULL,
