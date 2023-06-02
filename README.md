@@ -14,7 +14,7 @@ Information is produced and transported by a resource host using
 ObjMsgHost Produce(), received (at a single point) using 
 ObjMsgTransport Receive(), and distributed to desired endpoints using ObjMsgHost Consume().
 
-# Classes
+# ObjMsg-Classes
 
 ## ObjMsgData
 All data is exchanged using objects derived from ObjMsgData base class
@@ -63,7 +63,7 @@ content as a ObjMsgDataRef.
  (controller) to deliver ObjMsgData.
 
 ### ObjMsgHost Implementations
-Example implementations include AdcHost, GpioHost, ServoHost, WebsocketHost, LvglHost, JoystickHost, 
+Example implementations include AdcHost, GpioHost, ServoHost, WebsocketHost, LvglHost, JoystickHost 
 
 ## ObjMsgDataFactory
  The ObjMsgDataFactory supports creation of a ObjMsgData object based on received data. Each endpoint supporting

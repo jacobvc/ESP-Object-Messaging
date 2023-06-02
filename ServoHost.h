@@ -29,7 +29,7 @@ typedef ObjMsgDataInt ObjMsgServoData;
 class ServoHost : public ObjMsgHost
 {
 public:
-  ServoHost(ObjMsgTransport &transport, uint16_t origin)
+  ServoHost(ObjMsgTransport *transport, uint16_t origin)
       : ObjMsgHost(transport, "SERVO", origin)
   {
     timer = NULL;

@@ -25,7 +25,7 @@ httpd_handle_t server;
  *               |__/          |___/
  */
 
-WebsocketHost::WebsocketHost(ObjMsgTransport &transport, uint16_t origin,
+WebsocketHost::WebsocketHost(ObjMsgTransport *transport, uint16_t origin,
                              gpio_num_t led, bool resetWifi)
     : ObjMsgHost(transport, "WEBSOCKET", origin)
 {

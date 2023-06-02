@@ -44,7 +44,7 @@ enum ObjMsgSample
 class ObjMsgHost
 {
 protected:
-  ObjMsgTransport &transport; ///< transport used to send content
+  ObjMsgTransport *transport; ///< transport used to send content
   const string TAG; ///< TAG for log messages
   const uint16_t origin_id; ///< Name for log messages from ths instance
 
@@ -53,7 +53,7 @@ public:
   /// @param transport: Transport object
   /// @param tag: Name for log messages
   /// @param origin: Origin ID for this host
-  ObjMsgHost(ObjMsgTransport &transport, const char *tag, uint16_t origin)
+  ObjMsgHost(ObjMsgTransport *transport, const char *tag, uint16_t origin)
       : transport(transport), TAG(tag), origin_id(origin) {}
 
   /// Consume provided data
@@ -67,7 +67,7 @@ public:
   /// use transport to Send provided data
   /// @param data - data to send
   /// @return boolean success
-  virtual bool Produce(ObjMsgDataRef data);
+  virtual bool Produce(ObjMsgDataRef data); // Implemented in ObjMsgDataFactory.cpp
 
   /// Produce data created by parsing a JSON encoded message
   ///

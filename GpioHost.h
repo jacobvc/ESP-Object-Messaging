@@ -72,7 +72,7 @@ public:
   /// Constructor, specifying transport object and origin
   /// @param transport: Transport object
   /// @param origin: Origin ID for this host
-  GpioHost(ObjMsgTransport &transport, uint16_t origin)
+  GpioHost(ObjMsgTransport *transport, uint16_t origin)
       : ObjMsgHost(transport, "GpioHost", origin)
   {
     event_queue = NULL;

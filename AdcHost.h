@@ -104,7 +104,7 @@ public:
   /// @param transport: Transport object
   /// @param origin: Origin ID for this host
   /// @param sampleIntervalMs: sampling interval for event detection
-  AdcHost(ObjMsgTransport &transport, uint16_t origin, 
+  AdcHost(ObjMsgTransport *transport, uint16_t origin, 
     TickType_t sampleIntervalMs)
       : ObjMsgHost(transport, "AdcHost", origin)
   {

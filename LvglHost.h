@@ -31,7 +31,7 @@ public:
   /// Constructor, specifying transport object and origin 
   /// @param transport: Transport object
   /// @param origin: Origin ID for this host
-  LvglHost(ObjMsgTransport &transport, uint16_t origin)
+  LvglHost(ObjMsgTransport *transport, uint16_t origin)
       : ObjMsgHost(transport, "LVGL", origin)
   {
   }

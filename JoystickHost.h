@@ -26,7 +26,7 @@ public:
   /// @param transport: Transport object
   /// @param origin: Origin ID for this host
   /// @param sampleIntervalMs: sampling interval for event detection
-  JoystickHost(AdcHost &adc, GpioHost &gpio, ObjMsgTransport &transport, uint16_t origin, 
+  JoystickHost(AdcHost *adc, GpioHost *gpio, ObjMsgTransport *transport, uint16_t origin, 
     TickType_t sampleIntervalMs)
       : ObjMsgHost(transport, "JOYSTICK", origin), adc(adc), gpio(gpio)
   {
@@ -52,14 +52,14 @@ public:
       anyChangeEvents = true;
     }
 
-    AdcChannel *ch = adc.Add(name + "-x", POLLING, ad_x, 
+    AdcChannel *ch = adc->Add(name + "-x", POLLING, ad_x, 
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
     joy->xchan = ch;
-    ch = adc.Add(name + "-y", POLLING, ad_y, 
+    ch = adc->Add(name + "-y", POLLING, ad_y, 
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
     joy->ychan = ch;
 
-    joy->btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
+    joy->btnPort = gpio->Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
     ObjMsgData::RegisterClass(origin_id, name, ObjMsgJoystickData::Create);
 
@@ -123,8 +123,8 @@ protected:
   bool anyChangeEvents;
   unordered_map<string, Joystick *> joysticks;
   TickType_t sampleIntervalMs;
-  AdcHost &adc;
-  GpioHost &gpio;
+  AdcHost *adc;
+  GpioHost *gpio;
 
   Joystick *GetJoystick(string name)
   {
@@ -174,10 +174,10 @@ protected:
     // Measure NO_OF_SAMPLES times and average the reading
     for (int i = 0; i < NO_OF_SAMPLES; i++)
     {
-      reading_x += adc.Measure(js->xchan);
-      reading_y += adc.Measure(js->ychan);
+      reading_x += adc->Measure(js->xchan);
+      reading_y += adc->Measure(js->ychan);
     }
-    up = gpio.Measure(js->btnPort);
+    up = gpio->Measure(js->btnPort);
 
     reading_x /= NO_OF_SAMPLES;
     reading_y /= NO_OF_SAMPLES;

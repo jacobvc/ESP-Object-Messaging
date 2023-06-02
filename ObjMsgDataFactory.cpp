@@ -8,7 +8,7 @@ ObjMsgDataFactory ObjMsgData::dataFactory;
 
 bool ObjMsgHost::Produce(ObjMsgDataRef data)
 {
-  return transport.Send(data);
+  return transport->Send(data);
 }
 
 
