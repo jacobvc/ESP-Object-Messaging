@@ -110,7 +110,7 @@ public:
         MCPWM_GEN_ACTION_LOW),
       MCPWM_GEN_COMPARE_EVENT_ACTION_END()));
     // Create a servo object and map it by name
-    servos[name] = Servo(name, pin, comparator);
+    servos[name] = new Servo(name, pin, comparator);
 
     return 0;
   }
@@ -159,16 +159,16 @@ protected:
   };
 
   Servo *GetServo(string name) {
-      unordered_map<string, Servo>::iterator found = servos.find(name);
+      unordered_map<string, Servo *>::iterator found = servos.find(name);
       if (found != servos.end()) {
-          return &found->second;
+          return found->second;
       }
       else {
           return NULL;
       }
   }
 
-  unordered_map<string, Servo> servos;
+  unordered_map<string, Servo *> servos;
   mcpwm_oper_handle_t oper = NULL;
   mcpwm_timer_handle_t timer = NULL;
 };

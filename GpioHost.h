@@ -65,7 +65,7 @@ public:
 class GpioHost : public ObjMsgHost
 {
 public:
-  unordered_map<string, GpioPort> ports;
+  unordered_map<string, GpioPort *> ports;
   bool anyChangeEvents;
   QueueHandle_t event_queue;
 
@@ -86,8 +86,8 @@ public:
   /// @return created GpioPort
   GpioPort *Add(string name, gpio_num_t pin, ObjMsgSample mode, GpioFlags flags)
   {
-    ports[name] = GpioPort(name, pin, mode, flags, this);
-    GpioPort *tmp = &ports[name];
+    ports[name] = new GpioPort(name, pin, mode, flags, this);
+    GpioPort *tmp = ports[name];
 
     if (mode == CHANGE_EVENT)
     {
@@ -153,7 +153,7 @@ public:
   {
     if (anyChangeEvents)
     {
-      unordered_map<string, GpioPort>::iterator it;
+      unordered_map<string, GpioPort *>::iterator it;
 
       event_queue = xQueueCreate(10, sizeof(void *));
       xTaskCreate(input_task, "gpio_input_task",
@@ -164,10 +164,10 @@ public:
 
       for (it = ports.begin(); it != ports.end(); it++)
       {
-        GpioPort &port = it->second;
-        if (port.mode == CHANGE_EVENT)
+        GpioPort *port = it->second;
+        if (port->mode == CHANGE_EVENT)
         {
-          gpio_isr_handler_add(port.pin, isr_handler, &port);
+          gpio_isr_handler_add(port->pin, isr_handler, port);
         }
       }
     }
@@ -214,10 +214,10 @@ public:
 protected:
   GpioPort *GetPort(string name)
   {
-    unordered_map<string, GpioPort>::iterator found = ports.find(name);
+    unordered_map<string, GpioPort *>::iterator found = ports.find(name);
     if (found != ports.end())
     {
-      return &found->second;
+      return found->second;
     }
     else
     {

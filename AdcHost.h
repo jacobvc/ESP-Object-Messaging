@@ -139,8 +139,8 @@ public:
 
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, channel, &config));
 
-    channels[name] = AdcChannel(channel, mode, maxCounts, min, max);
-    AdcChannel *tmp = &channels[name];
+    channels[name] = new AdcChannel(channel, mode, maxCounts, min, max);
+    AdcChannel *tmp = channels[name];
 
     if (mode == CHANGE_EVENT)
     {
@@ -189,10 +189,10 @@ public:
 protected:
   AdcChannel *GetChannel(string name)
   {
-    unordered_map<string, AdcChannel>::iterator found = channels.find(name);
+    unordered_map<string, AdcChannel *>::iterator found = channels.find(name);
     if (found != channels.end())
     {
-      return &found->second;
+      return found->second;
     }
     else
     {
@@ -207,19 +207,19 @@ protected:
     for (;;)
     {
       vTaskDelay(pdMS_TO_TICKS(ep->sampleIntervalMs));
-      unordered_map<string, AdcChannel>::iterator it;
+      unordered_map<string, AdcChannel *>::iterator it;
 
       for (it = ep->channels.begin(); it != ep->channels.end(); it++)
       {
-        AdcChannel &js = it->second;
-        if (js.mode == CHANGE_EVENT)
+        AdcChannel *js = it->second;
+        if (js->mode == CHANGE_EVENT)
         {
-          int value = js.GetValue();
-          ep->Measure(&js);
-          if (abs(value - js.GetValue()) > js.hysteresis)
+          int value = js->GetValue();
+          ep->Measure(js);
+          if (abs(value - js->GetValue()) > js->hysteresis)
           {
             ObjMsgDataRef data = ObjMsgAdcData::Create(
-              ep->origin_id, it->first.c_str(), js.GetValue());
+              ep->origin_id, it->first.c_str(), js->GetValue());
             ep->Produce(data);
           }
         }
@@ -229,6 +229,6 @@ protected:
   
   TickType_t sampleIntervalMs;
   adc_oneshot_unit_handle_t adc_handle;
-  unordered_map<string, AdcChannel> channels;
+  unordered_map<string, AdcChannel *> channels;
   bool anyChangeEvents;
 };

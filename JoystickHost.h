@@ -45,8 +45,8 @@ public:
   int Add(string name, ObjMsgSample mode, 
     adc_channel_t ad_x, adc_channel_t ad_y, gpio_num_t btn)
   {
-    joysticks[name] = Joystick(name, mode);
-    Joystick &joy = joysticks[name];
+    joysticks[name] = new Joystick(name, mode);
+    Joystick *joy = joysticks[name];
 
     if (mode == CHANGE_EVENT) {
       anyChangeEvents = true;
@@ -54,12 +54,12 @@ public:
 
     AdcChannel *ch = adc.Add(name + "-x", POLLING, ad_x, 
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
-    joy.xchan = ch;
+    joy->xchan = ch;
     ch = adc.Add(name + "-y", POLLING, ad_y, 
       ADC_ATTEN_DB_11, ADC_BITWIDTH_12, 4096, -100, 100);
-    joy.ychan = ch;
+    joy->ychan = ch;
 
-    joy.btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
+    joy->btnPort = gpio.Add(name + "-up", btn, POLLING, IS_INPUT_GF | PULLUP_GF);
 
     ObjMsgData::RegisterClass(origin_id, name, ObjMsgJoystickData::Create);
 
@@ -121,17 +121,17 @@ protected:
   };
 
   bool anyChangeEvents;
-  unordered_map<string, Joystick> joysticks;
+  unordered_map<string, Joystick *> joysticks;
   TickType_t sampleIntervalMs;
   AdcHost &adc;
   GpioHost &gpio;
 
   Joystick *GetJoystick(string name)
   {
-    unordered_map<string, Joystick>::iterator found = joysticks.find(name);
+    unordered_map<string, Joystick *>::iterator found = joysticks.find(name);
     if (found != joysticks.end())
     {
-      return &found->second;
+      return found->second;
     }
     else
     {
@@ -146,17 +146,17 @@ protected:
     for (;;)
     {
       vTaskDelay(pdMS_TO_TICKS(ep->sampleIntervalMs));
-      unordered_map<string, Joystick>::iterator it;
+      unordered_map<string, Joystick *>::iterator it;
 
       for (it = ep->joysticks.begin(); it != ep->joysticks.end(); it++)
       {
-        Joystick &js = it->second;
-        if (js.mode == CHANGE_EVENT)
+        Joystick *js = it->second;
+        if (js->mode == CHANGE_EVENT)
         {
-          if (ep->Measure(&js))
+          if (ep->Measure(js))
           {
             ObjMsgDataRef data = ObjMsgJoystickData::Create(
-              ep->origin_id, js.name.c_str(), js.sample);
+              ep->origin_id, js->name.c_str(), js->sample);
             ep->Produce(data);
           }
         }
