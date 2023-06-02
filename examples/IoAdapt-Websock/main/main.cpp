@@ -75,12 +75,12 @@ TaskHandle_t MessageTaskHandle;
 ObjMsgTransport transport(MSG_QUEUE_MAX_DEPTH);
 
 // ObjMsgHosts
-AdcHost adc(transport, ORIGIN_ADC, SAMPLE_INTERVAL_MS);
-GpioHost gpio(transport, ORIGIN_GPIO);
+AdcHost adc(&transport, ORIGIN_ADC, SAMPLE_INTERVAL_MS);
+GpioHost gpio(&transport, ORIGIN_GPIO);
 
-JoystickHost joysticks(adc, gpio, transport, ORIGIN_JOYSTICK, SAMPLE_INTERVAL_MS);
-ServoHost servos(transport, ORIGIN_SERVO);
-WebsocketHost ws(transport, ORIGIN_WEBSOCKET, WEBSOCK_LED, false);
+JoystickHost joysticks(&adc, &gpio, &transport, ORIGIN_JOYSTICK, SAMPLE_INTERVAL_MS);
+ServoHost servos(&transport, ORIGIN_SERVO);
+WebsocketHost ws(&transport, ORIGIN_WEBSOCKET, WEBSOCK_LED, false);
 
 //
 // Message Task

@@ -84,7 +84,7 @@ public:
 
   bool Produce(ObjMsgDataRef data)
   {
-    return transport.Send(data);
+    return transport->Send(data);
   }
 
   bool Consume(ObjMsgData *msg)
