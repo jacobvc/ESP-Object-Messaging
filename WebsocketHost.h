@@ -19,6 +19,8 @@
 class WebsocketHost : public ObjMsgHost
 {
 public:
+  /// @brief Set true before start() to reset WiFi AP configuration
+  bool resetWifi;
   /// Constructor, specifying transport object and origin, and optionally a LED GPIO number
   /// and a directive to reset the wifi credentials
   /// @param transport: transport object
@@ -26,7 +28,7 @@ public:
   /// @param led: (Optional) GPIO number for LED
   /// @param resetWifi: (Optional) directive to reset WiFi credentials
   WebsocketHost(ObjMsgTransport *transport, uint16_t origin,
-    gpio_num_t led = GPIO_NUM_NC, bool resetWifi = false);
+    gpio_num_t led = GPIO_NUM_NC);
 
   /// Add handler supported at specified path, to be supported by httpd or ws as specified
   ///

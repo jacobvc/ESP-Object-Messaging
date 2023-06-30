@@ -234,7 +234,8 @@ protected:
       {
         host->Measure(port);
 
-        if (((port->changed > 0) && (port->flags & POS_EVENT_GF)) || ((port->changed < 0) && (port->flags & NEG_EVENT_GF)))
+        // Value changed OR Interrup only on one edge
+        if ((port->changed) || ((port->flags & (POS_EVENT_GF|NEG_EVENT_GF)) != (POS_EVENT_GF | NEG_EVENT_GF)))
         {
           ObjMsgDataRef point = ObjMsgGpioData::Create(host->origin_id, port->name.c_str(), port->value);
           host->Produce(point);

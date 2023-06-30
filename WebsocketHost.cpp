@@ -26,29 +26,14 @@ httpd_handle_t server;
  */
 
 WebsocketHost::WebsocketHost(ObjMsgTransport *transport, uint16_t origin,
-                             gpio_num_t led, bool resetWifi)
+                             gpio_num_t led)
     : ObjMsgHost(transport, "WEBSOCKET", origin)
 {
   server = NULL;
   blinkTaskHandle = NULL;
   this->led = led;
+  this->resetWifi = false;
   wifi_event_group = xEventGroupCreate();
-
-  /* Initialize NVS partition */
-  if (resetWifi)
-  {
-    nvs_flash_erase();
-  }
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-  {
-    /* NVS partition was truncated
-     * and needs to be erased */
-    ESP_ERROR_CHECK(nvs_flash_erase());
-
-    /* Retry nvs_flash_init */
-    ESP_ERROR_CHECK(nvs_flash_init());
-  }
 }
 
 bool WebsocketHost::Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), bool ws)
@@ -67,6 +52,18 @@ bool WebsocketHost::Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), boo
 
 bool WebsocketHost::Start()
 {
+  /* Initialize NVS partition */
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
+    /* NVS partition was truncated
+     * and needs to be erased */
+    ESP_ERROR_CHECK(nvs_flash_erase());
+
+    /* Retry nvs_flash_init */
+    ESP_ERROR_CHECK(nvs_flash_init());
+  }
+
   // Init websocket handler
   Add("/ws", WebSockMsgHandler, true);
 
@@ -87,6 +84,13 @@ bool WebsocketHost::Start()
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+  if (resetWifi) {
+    wifi_config_t wifi_cfg;
+    memset(&wifi_cfg, 0, sizeof(wifi_cfg));
+    printf("esp_wifi_set_config = %d",
+    esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
+  }
 
   /* Register event handlers to stop the server when Wi-Fi or Ethernet is disconnected,
    * and re-start it upon connection as well as for provisioning
@@ -294,6 +298,8 @@ void WebsocketHost::WifiEventHandler(void *arg, esp_event_base_t event_base,
       {
         // CONFIGURED
         configured = true;
+    	// ESP_LOGI(host->TAG.c_str(), "SSID:%s", wifi_cfg.sta.ssid);
+    	// ESP_LOGI(host->TAG.c_str(), "PASSWORD:%s", wifi_cfg.sta.password);
       }
     }
     // TODO if configured connect, but if timeout waiting for CONNECT, start smartconfig

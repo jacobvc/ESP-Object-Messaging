@@ -46,6 +46,7 @@
 
 
 // Define LED for WebsocketHost
+#define LED_BUILTIN GPIO_NUM_2
 #define WEBSOCK_LED LED_OUT_PINS[0] // GPIO_NUM_NC to not use
 
 // Origin IDs (not all used here; same for all examples)
@@ -83,7 +84,7 @@ GpioHost gpio(&transport, ORIGIN_GPIO);
 JoystickHost joysticks(&adc, &gpio, &transport, ORIGIN_JOYSTICK, SAMPLE_INTERVAL_MS);
 ServoHost servos(&transport, ORIGIN_SERVO);
 LvglHost lvgl(&transport, ORIGIN_LVGL);
-WebsocketHost ws(&transport, ORIGIN_WEBSOCKET, WEBSOCK_LED, false);
+WebsocketHost ws(&transport, ORIGIN_WEBSOCKET, WEBSOCK_LED);
 
 //
 // Message Task
