@@ -80,6 +80,6 @@ Example implementations include:
 #### GpioHost
 #### ServoHost
 #### WebsocketHost
-WebsocketHost implements WiFi, http server and webserver functionalities, as well as SmartConfig provisioning. It may be provisioned using the [ESPTOUCH APP](https://www.espressif.com/en/products/software/esp-touch/resources).
+WebsocketHost implements WiFi, http server and webserver functionalities, as well as SmartConfig provisioning. It may be provisioned using the ESPTOUCH APP available at Google Play, and at the App Store.
 #### LvglHost
 #### JoystickHost 
