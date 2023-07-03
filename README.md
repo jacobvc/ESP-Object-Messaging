@@ -85,4 +85,4 @@ WebsocketHost implements WiFi, http server and webserver functionalities, as wel
 #### JoystickHost 
 
 # Examples
-Several examples are provided [here](examples/readme)
+Several examples are provided [here](examples/README.md)
