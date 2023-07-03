@@ -102,7 +102,7 @@ public:
     {
       // INPUT
       io_conf.mode = GPIO_MODE_INPUT;        // set as input mode
-      io_conf.intr_type = EdgeConfig(flags); // interrupt of both edges
+      io_conf.intr_type = EdgeConfig(flags); // interrupt edges
     }
     else
     {
@@ -110,7 +110,7 @@ public:
       io_conf.mode = GPIO_MODE_OUTPUT;       // set as output mode
       io_conf.intr_type = GPIO_INTR_DISABLE; // disable interrupt
     }
-    io_conf.pin_bit_mask = 1ull << pin; // bit mask of the pins, use GPIO4/5 here
+    io_conf.pin_bit_mask = 1ull << pin; // bit mask of the pins
     io_conf.pull_down_en = (flags & PULLDOWN_GF) ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = (flags & PULLUP_GF) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
 
@@ -233,7 +233,6 @@ protected:
       if (xQueueReceive(host->event_queue, &port, portMAX_DELAY))
       {
         host->Measure(port);
-
         // Value changed OR Interrup only on one edge
         if ((port->changed) || ((port->flags & (POS_EVENT_GF|NEG_EVENT_GF)) != (POS_EVENT_GF | NEG_EVENT_GF)))
         {
@@ -256,11 +255,13 @@ private:
     gpio_int_type_t edge = GPIO_INTR_DISABLE;
     if (flags & POS_EVENT_GF)
     {
-      edge = (gpio_int_type_t)(edge | (flags & INVERTED_GF) ? GPIO_INTR_NEGEDGE : GPIO_INTR_POSEDGE);
+      edge = (gpio_int_type_t)(edge 
+       | ((flags & INVERTED_GF) ? GPIO_INTR_NEGEDGE : GPIO_INTR_POSEDGE));
     }
     if (flags & NEG_EVENT_GF)
     {
-      edge = (gpio_int_type_t)(edge | (flags & INVERTED_GF) ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE);
+      edge = (gpio_int_type_t)(edge 
+       | ((flags & INVERTED_GF) ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE));
     }
     return edge;
   }

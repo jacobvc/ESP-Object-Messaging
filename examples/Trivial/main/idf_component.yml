@@ -1,0 +1,7 @@
+description: Object Messaging Example app for Esp32IoAdapt
+
+dependencies:
+  idf: ">=5.0"
+  ObjMessaging:
+    git: https://github.com/jacobvc/ESP-Object-Messaging
+ 
