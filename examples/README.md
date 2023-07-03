@@ -5,6 +5,9 @@ the [Esp32IoAdapt](https://github.com/jacobvc/ESP32-Hardware-Boards/tree/main/Es
 
 Each increment is a formal superset of the previous example
 
+## Trivial 
+A trivial example that Lights the builtin LED when the BOOT button is pressed.
+
 ## Esp32IoAdapt
 Utilizes the [Esp32IoAdapt](https://github.com/jacobvc/ESP32-Hardware-Boards/tree/main/Esp32IoAdapt) board with 2 joysticks, 2 slider potentiometers, a servo, and two LEDs.  
 
