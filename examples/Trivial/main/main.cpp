@@ -1,7 +1,5 @@
 #include "ObjMsg.h"
-
 #include "GpioHost.h"
-
 #include <unordered_map>
 
 #define TAG "APP"
@@ -10,8 +8,7 @@
 #define LED_BUILTIN GPIO_NUM_2
 #define GPIO_BOOT GPIO_NUM_0
 
-
-// Origin IDs (not all used here; same for all examples)
+// Origin IDs 
 enum Origins
 {
   ORIGIN_CONTROLLER,
@@ -66,13 +63,13 @@ static void MessageTask(void *pvParameters)
 //
 extern "C" void app_main(void)
 {
-  // Configure and start GPIO
+  // Configure and start GPIOs
   gpio.Add("builtinled", LED_BUILTIN, POLLING, DEFAULT_GF);
   gpio.Add("bootBtn", GPIO_BOOT, CHANGE_EVENT, 
     NEG_EVENT_GF | POS_EVENT_GF | IS_INPUT_GF | INVERTED_GF);
   gpio.Start();
 
   xTaskCreate(MessageTask, "MessageTask",
-              CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 1024, NULL,
-              tskIDLE_PRIORITY, &MessageTaskHandle);
+    CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 1024, NULL,
+    tskIDLE_PRIORITY, &MessageTaskHandle);
 }
