@@ -6,7 +6,7 @@
 
 enum GpioFlags ///< GPIO flags (_GF)
 {
-  DEFAULT_GF  = 0,
+  DEFAULT_GF = 0,
   INVERTED_GF = 0x01,
   POS_EVENT_GF = 0x04, // POS / NEG edge when inverted applied
   NEG_EVENT_GF = 0x08,
@@ -91,9 +91,23 @@ public:
 
     if (mode == CHANGE_EVENT)
     {
-      // TODO make sure that IS_INPUT and at least one edge is also specified
-      anyChangeEvents = true;
+      if (flags & IS_INPUT_GF)
+      { // Must be input
+        if ((flags & (POS_EVENT_GF | NEG_EVENT_GF)))
+        { // Must be at least one edge
+          anyChangeEvents = true;
+        }
+        else
+        {
+          ESP_LOGE(TAG.c_str(), "%s - Gpio CHANGE_EVENT must have at least one of NEG_EVENT_GF or POS_EVENT_GF", name.c_str());
+        }
+      }
+      else
+      {
+        ESP_LOGE(TAG.c_str(), "%s - Gpio CHANGE_EVENT must be input", name.c_str());
+      }
     }
+
     ObjMsgGpioData::RegisterClass(origin_id, name, ObjMsgGpioData::Create);
 
     gpio_config_t io_conf;
@@ -234,7 +248,7 @@ protected:
       {
         host->Measure(port);
         // Value changed OR Interrup only on one edge
-        if ((port->changed) || ((port->flags & (POS_EVENT_GF|NEG_EVENT_GF)) != (POS_EVENT_GF | NEG_EVENT_GF)))
+        if ((port->changed) || ((port->flags & (POS_EVENT_GF | NEG_EVENT_GF)) != (POS_EVENT_GF | NEG_EVENT_GF)))
         {
           ObjMsgDataRef point = ObjMsgGpioData::Create(host->origin_id, port->name.c_str(), port->value);
           host->Produce(point);
