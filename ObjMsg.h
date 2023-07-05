@@ -146,16 +146,16 @@ public:
     return xQueueSend(message_queue, &msg, 0) ? true:false;
   }
 
-  /// Add 'fwd' to the forwards list
-  /// @param fwd: host to receive forwards
+  /// Add 'host' to the forwards list
+  /// @param host: host to receive forwards
   /// @return true if successful
-  bool AddForward(ObjMsgHost *fwd)
+  bool AddForward(ObjMsgHost *host)
   {
-    forwards.push_back(fwd);
+    forwards.push_back(host);
     return true;
   }
 
-  /// Forward 'data' to registered rconsumers (if they are not the origin)
+  /// Forward 'data' to registered host consumers (if they are not from themselves)
   /// @param data: data to forward
   void Forward(ObjMsgData *data)
   {

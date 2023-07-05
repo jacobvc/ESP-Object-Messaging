@@ -41,19 +41,19 @@ static void MessageTask(void *pvParameters)
   {
     if (transport.Receive(dataRef, wait))
     {
-      ObjMsgData *btnData = dataRef.get();
-      if (btnData->GetName().compare("bootBtn") == 0)
+      ObjMsgData *data = dataRef.get();
+      if (data->GetName().compare("bootBtn") == 0)
       {
         // Send 'bootBtn' value to 'builtinLed'
         int value;
-        btnData->GetValue(value);
-        ObjMsgDataInt led(btnData->GetOrigin(), "builtinled", value);
+        data->GetValue(value);
+        ObjMsgDataInt led(data->GetOrigin(), "builtinled", value);
         gpio.Consume(&led);
       }
       // Show all of the messages
       string str;
-      btnData->Serialize(str);
-      ESP_LOGI(TAG, "(%s) JSON: %s", origins[btnData->GetOrigin()], str.c_str());
+      data->Serialize(str);
+      ESP_LOGI(TAG, "(%s) JSON: %s", origins[data->GetOrigin()], str.c_str());
     }
   }
 }
