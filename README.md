@@ -39,18 +39,8 @@ Base ObjMsgDataT implementations include ObjMsgDataInt, ObjMsgDataFloat, and Obj
 
 A virtual ObjMsgDataT, ObjMsgJoystickData, is included
 
-### ObjMsgDataRef
+## ObjMsgDataRef
 A std::shared_ptr encoding ObjMsgData.
-
-### ObjMsgDataFactory
- The ObjMsgDataFactory supports creation of a ObjMsgData object based on received data. Each endpoint supporting
- object creation must register with the factory, this example (for data of
- type ObjMsgDataInt32):
-```
-    dataFactory.RegisterClass(my_origin, "my_name", ObjMsgDataInt32::Create);
-```
- Will create a ObjMsgDataInt32 object when data.get() is called for
- JSON data containing "name":"my_name".
 
 ## ObjMsgTransport
 ObjMsgTransport intantiates a freertos 'message_queue' which sends and receives
@@ -73,16 +63,14 @@ content as a ObjMsgDataRef.
  (controller) to deliver ObjMsgData.
 
 ### ObjMsgHost Implementations
-Several ObjMsgHost's are implemented, serving as sort of libraries as well as example implementations.
+Example implementations include AdcHost, GpioHost, ServoHost, WebsocketHost, LvglHost, JoystickHost 
 
-Example implementations include:
-#### AdcHost
-#### GpioHost
-#### ServoHost
-#### WebsocketHost
-WebsocketHost implements WiFi, http server and webserver functionalities, as well as SmartConfig provisioning. It may be provisioned using the ESPTOUCH APP available at Google Play, and at the App Store.
-#### LvglHost
-#### JoystickHost 
-
-# Examples
-Several examples are provided [here](examples/README.md)
+## ObjMsgDataFactory
+ The ObjMsgDataFactory supports creation of a ObjMsgData object based on received data. Each endpoint supporting
+ object creation must register with the factory, this example (for data of
+ type ObjMsgDataInt32):
+```
+    dataFactory.RegisterClass(my_origin, "my_name", ObjMsgDataInt32::Create);
+```
+ Will create a ObjMsgDataInt32 object when data.get() is called for
+ JSON data containing "name":"my_name".

@@ -25,7 +25,7 @@
 #define ZOOM_JOY_PINS IA_GVSSS1_PINS
 #define ZOOM_JOY_CHANS IA_GVSSS1_CHANS
 
-// Servo connector / pin 
+// Servo connector / pin
 #define ZOOM_SERVO_X_PIN IA_GVS1_PIN
 
 // LED Output connector / pins
@@ -44,7 +44,6 @@
 #define ZOOM_X_GT_0 "zoom_x_gt_0"
 #define ZOOM_Y_GT_0 "zoom_y_gt_0"
 
-
 // Define LED for WebsocketHost
 #define LED_BUILTIN GPIO_NUM_2
 #define WEBSOCK_LED LED_OUT_PINS[0] // GPIO_NUM_NC to not use
@@ -62,16 +61,16 @@ enum Origins
 };
 
 const char *origins[] = {
-  "ORIGIN_CONTROLLER",
-  "ORIGIN_JOYSTICK",
-  "ORIGIN_SERVO",
-  "ORIGIN_ADC",
-  "ORIGIN_WEBSOCKET",
-  "ORIGIN_LVGL",
-  "ORIGIN_GPIO",
+    "ORIGIN_CONTROLLER",
+    "ORIGIN_JOYSTICK",
+    "ORIGIN_SERVO",
+    "ORIGIN_ADC",
+    "ORIGIN_WEBSOCKET",
+    "ORIGIN_LVGL",
+    "ORIGIN_GPIO",
 };
 
-// 
+//
 TaskHandle_t MessageTaskHandle;
 
 // Transport
@@ -118,6 +117,11 @@ static void MessageTask(void *pvParameters)
         ObjMsgDataInt y(jsd->GetOrigin(), ZOOM_Y_GT_0, sample.y > 0);
         gpio.Consume(&y);
       }
+      if (data->GetName().compare("sample") == 0)
+      {
+        extern void BtnSampleClicked(lv_event_t * e);
+        BtnSampleClicked(NULL);
+      }
       // Show all of the messages
       string str;
       data->Serialize(str);
@@ -128,7 +132,7 @@ static void MessageTask(void *pvParameters)
 
 //
 // Example LVGL virtual consumer
-//  
+//
 bool LvglJoystickComsumer(LvglHost *host, ObjMsgData *data)
 {
   ObjMsgJoystickData *jsd = static_cast<ObjMsgJoystickData *>(data);
@@ -146,7 +150,8 @@ bool LvglJoystickComsumer(LvglHost *host, ObjMsgData *data)
 
     return true;
   }
-  else {
+  else
+  {
     ESP_LOGW("LvglJoystickComsumer", "Data is NOT ObjMsgJoystickData");
     return false;
   }
@@ -187,7 +192,7 @@ void MessagingInit()
   // Have transport forward messages to lvgl
   transport.AddForward(&lvgl);
 
-   xTaskCreate(MessageTask, "MessageTask",
+  xTaskCreate(MessageTask, "MessageTask",
               CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 1024, NULL,
               tskIDLE_PRIORITY, &MessageTaskHandle);
 
