@@ -12,7 +12,7 @@
 #include <list>
 #include <memory>
 
-#include "cjson.h"
+#include "cJSON.h"
 #include "ObjMsgData.h"
 
 using namespace std;
