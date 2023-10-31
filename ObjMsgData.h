@@ -311,7 +311,7 @@ public:
   bool GetValue(string &str)
   {
     char buffer[32];
-    sprintf(buffer, "%ld", value);
+    sprintf(buffer, "%d", value);
     str = buffer;
 
     return true;
