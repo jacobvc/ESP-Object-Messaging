@@ -6,6 +6,8 @@ import json
 import getopt
 from datetime import date
 
+version = "2"
+
 helptext = '''
 Collect symbols from include_file lines starting with 'extern lv_obj_t *'.
 Build a UI with Produce and Consume checkboxes for each symbol (-a option)
@@ -47,6 +49,7 @@ events = [
 # control type / default event. If you add a new control type
 # it must be added to the ControlType enum in LcvglBinding.h
 typemaps = dict()
+typemaps['scr'] = ["SCREEN_CT", "LV_EVENT_CLICKED"]
 typemaps['arc'] = ["ARC_CT", "LV_EVENT_CLICKED"]
 typemaps['btn'] = ["BUTTON_CT", "LV_EVENT_CLICKED"]
 typemaps['img'] = ["IMAGE_CT", "LV_EVENT_CLICKED"]
@@ -175,7 +178,11 @@ def save(values):
     f.write("/** " + binding_name + ".cpp   Generated " + str(date.today()) +
 '''
  *
- * Generated using ESP-Object-Messaging: tools/ui_bind.py. Do not edit manually.
+ * Generated using ESP-Object-Messaging: tools/ui_bind.py,
+ '''
++ '* Version ' + version +
+ ''' 
+ * Do not edit manually.
  * 
  */        
 '''
@@ -183,10 +190,11 @@ def save(values):
     f.write('#include "LvglHost.h"\n')
     f.write('#include "' + include_file + '"\n')
     f.write('#include "LvglBinding.h"\n\n')
-    f.write("void LvglBindingInit(LvglHost& host)\n{\n")
+    f.write("void LvglBindingInit(LvglHost& host, lv_group_t* group)\n{\n")
     for variable in variables:
-        write_function(f, variable, values[variable + '_name'], values[variable + '_pro'], 
-            values[variable + '_con'], values[variable + '_type'], values[variable + '_evt'])
+        write_function(f, variable, values[variable + '_name'], 
+          values[variable + '_pro'], values[variable + '_con'], values[variable + '_grp'],
+          values[variable + '_type'], values[variable + '_evt'])
     f.write("}\n")
     f.close()
 #
@@ -207,23 +215,25 @@ def add_variable(variable):
         prefix_name = name
         name = prefix_name[3:]
     else:
-        # No prefix match. Configurre to use "label" prefix
+        # No prefix match. Configure to use "label" prefix
         prefix_name = 'lbl'
     if verbose: print('  Adding ' + variable + ' as ' + name)
     variables.append(variable)
-    choices = [sg_name(name), 
+    choices = [sg_name(variable[3:]), 
         sg.Input(k=variable + '_name', default_text=name.lower(), size=9, font="_10",),
         sg.Combo(k=variable + '_type', default_value=typemaps[prefix_name[0:3]][0], values=types, font="_ 10"), 
         sg.Checkbox('Consume', k=variable + '_con'),
         sg.Checkbox('Produce', k=variable + '_pro'), 
-        sg.Combo(k=variable + '_evt', default_value=typemaps[prefix_name[0:3]][1], values=events, font="_ 10")]
+        sg.Combo(k=variable + '_evt', default_value=typemaps[prefix_name[0:3]][1], values=events, font="_ 10"),
+        sg.Checkbox('Group', k=variable + '_grp')]
     layout.append(choices)
 
-def write_function(f, variable, name, produce, consume, type, event):
+def write_function(f, variable, name, produce, consume, group, type, event):
     if verbose: 
         print('  Writing ' + variable + ' (' + name + ')' , end=' ')
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
+        if group: print('Group', end=' ')
         print()
     body = '("' + name + '", ' + variable + ", " + type 
     if produce: 
@@ -234,6 +244,10 @@ def write_function(f, variable, name, produce, consume, type, event):
         f.write('    host.AddConsumer' + body + ");\n")
     elif verbose:
         f.write('    // AddConsumer' + body + ");\n")
+    if group: 
+        f.write('    lv_group_add_obj(group, ' + variable + ');\n')
+    elif verbose:
+        f.write('    // Add group(' + variable + ");\n")
 
 def show_config():
     print('Settings')

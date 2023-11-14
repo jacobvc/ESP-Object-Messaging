@@ -153,6 +153,8 @@ public:
 
             lv_calendar_set_showed_date(ctx->obj, date.year, date.month);
             lv_calendar_set_today_date(ctx->obj, date.year, date.month, date.day);
+
+            cJSON_Delete(item);
           }
           break;
         case CHECKBOX_CT:
@@ -300,13 +302,16 @@ protected:
           break;
         }
         case DROPDOWN_CT:
-          data = ObjMsgDataString::Create(
-              host->origin_id, ctx->name, lv_dropdown_get_text(ctx->obj));
+        {
+          char buf[40];
+          lv_dropdown_get_selected_str(ctx->obj, buf, sizeof(buf));
+          data = ObjMsgDataString::Create(host->origin_id, ctx->name, buf);
           host->Produce(data);
           break;
+        }
         case ROLLER_CT:
         {
-          char buf[32];
+          char buf[40];
           lv_roller_get_selected_str(ctx->obj, buf, sizeof(buf));
           data = ObjMsgDataString::Create(
               host->origin_id, ctx->name, buf);

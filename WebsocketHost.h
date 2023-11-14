@@ -26,7 +26,6 @@ public:
   /// @param transport: transport object
   /// @param origin: this host's origin id
   /// @param led: (Optional) GPIO number for LED
-  /// @param resetWifi: (Optional) directive to reset WiFi credentials
   WebsocketHost(ObjMsgTransport *transport, uint16_t origin,
     gpio_num_t led = GPIO_NUM_NC);
 

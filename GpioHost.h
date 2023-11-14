@@ -157,7 +157,7 @@ public:
       }
       else
       {
-        ESP_LOGW(TAG.c_str(), "GPIO %s not found", data->GetName());
+        ESP_LOGW(TAG.c_str(), "GPIO %s not found", data->GetName().c_str());
       }
     }
     return false;

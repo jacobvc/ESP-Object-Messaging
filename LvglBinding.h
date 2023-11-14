@@ -2,6 +2,7 @@
 
 
 enum ControlType {
+    SCREEN_CT,
     ARC_CT,
     BUTTON_CT,
     LABEL_CT,
@@ -19,4 +20,4 @@ enum ControlType {
 
 class LvglHost;
 
-void LvglBindingInit(LvglHost& host);
+void LvglBindingInit(LvglHost& host, lv_group_t* group);
