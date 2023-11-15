@@ -8,14 +8,20 @@ from datetime import date
 
 version = "2"
 
-helptext = '''
-Collect symbols from include_file lines starting with 'extern lv_obj_t *'.
-Build a UI with Produce and Consume checkboxes for each symbol (-a option)
-or each symbol starting with a suported three character prefix (and reporting
-any that do not start with a supported sequence).
+helptext = 'UI Bind - Version ' + version + '''
 
-'Save' generates <binding_name>.cpp with Produce / Comsume code for the checked
-items, and <binding_name>.json to save / restore the settings.
+Collect symbols from include_file lines starting with 'extern lv_obj_t *'.
+Build a UI with Produce, Consume, and Group checkboxes each symbol starting
+with a suported three character prefix (and reporting any that do not start
+with a supported sequence), OR for all symbols (-a option)
+
+'Save' 
+  generates <binding_name>.cpp with 
+      Produce/Consume code in LvglBindingInit(LvglHost& host)
+    and 
+      Group code in LvglGroupInit(lv_group_t* group)
+    for the checked items, 
+  and generates <binding_name>.json to save / restore the settings.
 '''
 events = [
     "LV_EVENT_PRESSED",             # The object has been pressed
@@ -94,14 +100,15 @@ sg.set_options(suppress_raise_key_errors=False,
 
 def main():
     global notes
-    if verbose: show_config()
+    if verbose: print(settings())
 
     process_include()
 
     layout.append([sg.Multiline(notes, size=(None, 5), k='notes')])
     layout.append([sg.Button('Save', button_color=('white', 'black')),
-            sg.Button('Exit', button_color=('white', 'black'))])
-    window = sg.Window('Produce / Consume Configuration', layout, font="_ 14", finalize=True)
+            sg.Button('Exit', button_color=('white', 'black')),
+            sg.Button('Help', button_color=('white', 'black'))])
+    window = sg.Window('Produce / Consume Configuration - UI Bind - Version ' + version, layout = layout, font="_ 14", finalize=True)
     
     # AFTER the window is finalized
     load_config(window)
@@ -115,6 +122,9 @@ def main():
 
         if event == 'Save':
             save(values)
+
+        if event == 'Help':
+            sg.popup_scrolled(helptext + "\n" + TypeMaps() + "\n" + usage + '\n' + settings(), title="Help", size={90, 30})
 
     window.close()
 
@@ -259,41 +269,40 @@ def write_GroupInit(f, variable, name, group):
     elif verbose:
         f.write('    // Add group(' + variable + ");\n")
 
-def show_config():
-    print('Settings')
-    print('  working_dir: ' + working_dir)
-    print('  all_symbols: ' + str(all_symbols))
-    print('  include_file: ' + include_file + ' (' + working_dir + include_file + ')')
-    print('  binding_name: ' + binding_name + ' (' + working_dir + binding_name + ')')
-    print('    Settings: ' + working_dir + binding_name + '.json)')
-    print('    Configuration: ' + working_dir + binding_name + '.cpp)')
-    print('  Constant prefix: ' + constant_prefix)
+def settings():
+  return '''Settings
+  working_dir:     ''' + working_dir + '''
+  all_symbols:     ''' + str(all_symbols) + '''
+  include_file:    ''' + include_file + ' (' + working_dir + include_file + ''')
+  binding_name:    ''' + binding_name + ' (' + working_dir + binding_name + ''')
+    Configuration: ''' + working_dir + binding_name + '''.json
+    Generated:     ''' + working_dir + binding_name + '''.cpp
+  Constant prefix: ''' + constant_prefix
 
 def help():
     print(helptext)
-    print("Control type prefixes:")
-    for t in typemaps:
-        print('    ', t, typemaps[t][0])
-    print('')
-    usage()
-    show_config()
+    print(TypeMaps())
+    print(usage)
+    print(settings())
 
-def usage():
-    print(
-'''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-b <binding_name>][-p <prefix>][-v] [-h]
+usage = '''Usage: ui_bind.py [-w <working_dir>][-i <include_file>][-b <binding_name>][-p <prefix>][-v] [-h]
      -a: Present all lv_obj symbols as opposed to only those with recognized name prefix
      -s: Report settings to stdout
      -v: Verbose
      -h: Show this help
 '''
-    )
+
+def TypeMaps():
+    s ="Control type prefixes:\n"
+    for t in typemaps:
+        s += '    ' + t + '  ' + typemaps[t][0] + '\n'
+    return s
 
 def error_exit(err):
     # output error, and return with an error code
     print (str(err))
-    show_config()
-    print('')
-    usage()
+    print(settings())
+    print(usage)
     exit()
 
 # process command line arguments
@@ -317,7 +326,7 @@ try:
         if arg in ("-v", "--verbose"):
             verbose = True
         elif arg in ("-s"):
-            show_config()
+            print(settings())
         elif arg in ("-a"):
             all_symbols = True
         elif arg in ("-w", "--working_dir"):
