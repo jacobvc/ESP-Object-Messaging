@@ -20,4 +20,5 @@ enum ControlType {
 
 class LvglHost;
 
-void LvglBindingInit(LvglHost& host, lv_group_t* group);
+void LvglBindingInit(LvglHost& host);
+void LvglGroupInit(lv_group_t* group);

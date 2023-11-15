@@ -1,4 +1,4 @@
-/** LvglBinding.cpp   Generated 2023-05-11
+/** LvglBinding.cpp   Generated 2023-11-14
  *
  * Generated using ESP-Object-Messaging: tools/ui_bind.py. Do not edit manually.
  * 

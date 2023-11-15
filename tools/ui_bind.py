@@ -190,11 +190,16 @@ def save(values):
     f.write('#include "LvglHost.h"\n')
     f.write('#include "' + include_file + '"\n')
     f.write('#include "LvglBinding.h"\n\n')
-    f.write("void LvglBindingInit(LvglHost& host, lv_group_t* group)\n{\n")
+    f.write("void LvglBindingInit(LvglHost& host)\n{\n")
     for variable in variables:
-        write_function(f, variable, values[variable + '_name'], 
-          values[variable + '_pro'], values[variable + '_con'], values[variable + '_grp'],
+        write_ProduceConsume(f, variable, values[variable + '_name'], 
+          values[variable + '_pro'], values[variable + '_con'], 
           values[variable + '_type'], values[variable + '_evt'])
+    f.write("}\n")
+    f.write("void LvglGroupInit(lv_group_t* group)\n{\n")
+    for variable in variables:
+        write_GroupInit(f, variable, values[variable + '_name'], 
+          values[variable + '_grp'])
     f.write("}\n")
     f.close()
 #
@@ -228,12 +233,11 @@ def add_variable(variable):
         sg.Checkbox('Group', k=variable + '_grp')]
     layout.append(choices)
 
-def write_function(f, variable, name, produce, consume, group, type, event):
+def write_ProduceConsume(f, variable, name, produce, consume, type, event):
     if verbose: 
         print('  Writing ' + variable + ' (' + name + ')' , end=' ')
         if produce: print('Produce', end=' ')
         if consume: print('Consume', end=' ')
-        if group: print('Group', end=' ')
         print()
     body = '("' + name + '", ' + variable + ", " + type 
     if produce: 
@@ -244,6 +248,12 @@ def write_function(f, variable, name, produce, consume, group, type, event):
         f.write('    host.AddConsumer' + body + ");\n")
     elif verbose:
         f.write('    // AddConsumer' + body + ");\n")
+
+def write_GroupInit(f, variable, name, group):
+    if verbose: 
+        print('  Writing ' + variable + ' (' + name + ')' , end=' ')
+        if group: print('Group', end=' ')
+        print()
     if group: 
         f.write('    lv_group_add_obj(group, ' + variable + ');\n')
     elif verbose:
