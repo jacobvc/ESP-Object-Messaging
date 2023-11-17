@@ -37,249 +37,270 @@ enum ObsOpcodes {
 
 class ObsWsClientHost : public ObjMsgHost
 {
-protected:
-  esp_websocket_client_config_t websocket_cfg;
-  int requestCount;
-  esp_websocket_client_handle_t client;
-  SemaphoreHandle_t connect_sema;
-  bool identified;
-  string assembly;
-
 public:
-  ObsWsClientHost(ObjMsgTransport* transport, uint16_t origin, const char* uri)
-    : ObjMsgHost(transport, "ObsWsClientHost", origin),
-    websocket_cfg{}
-  {
-    websocket_cfg.uri = uri;
-    websocket_cfg.network_timeout_ms = 1000;
-    websocket_cfg.reconnect_timeout_ms = 3000;
+  class WsClientInterface {
+  public:
+    string name;
 
-    requestCount = 0;
-    identified = false;
+    string uri;
+    ObsWsClientHost* host;
+    esp_websocket_client_config_t websocket_cfg;
+    string assembly;
 
-    connect_sema = xSemaphoreCreateBinary();
+    int requestCount;
+    esp_websocket_client_handle_t client;
+    SemaphoreHandle_t connect_sema;
+    bool identified;
 
-    client = esp_websocket_client_init(&websocket_cfg);
+    WsClientInterface(string name, string uri, ObsWsClientHost* host)
+      : name(name), uri(uri), host(host), websocket_cfg{}
+    {
 
-    esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY,
-      websocket_event_handler, this);
-  }
+      websocket_cfg.uri = uri.c_str();
+      websocket_cfg.network_timeout_ms = 1000;
+      websocket_cfg.reconnect_timeout_ms = 3000;
 
-  ~ObsWsClientHost() {
-    esp_websocket_client_destroy(client);
-  }
+      requestCount = 0;
+      identified = false;
 
-  bool Start()
-  {
-    ESP_LOGI(TAG.c_str(), "Connecting to %s...", websocket_cfg.uri);
+      connect_sema = xSemaphoreCreateBinary();
 
-    esp_websocket_client_start(client);
+      client = esp_websocket_client_init(&websocket_cfg);
 
-    if (xSemaphoreTake(connect_sema, CONNECT_TIMEOUT_SEC * 1000 / portTICK_PERIOD_MS)) {
-      Identify();
-      return true;
+      esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY,
+        websocket_event_handler, this);
     }
-    else {
-      return false;
+    ~WsClientInterface() {
+      esp_websocket_client_destroy(client);
     }
-  }
+    bool Start()
+    {
+      ESP_LOGI(host->TAG.c_str(), "Connecting to %s...", websocket_cfg.uri);
 
-  void Stop()
-  {
-    esp_websocket_client_close(client, portMAX_DELAY);
-    ESP_LOGI(TAG.c_str(), "Websocket Stopped");
-  }
+      esp_websocket_client_start(client);
 
-  esp_err_t Send(cJSON* msg) {
-    esp_err_t err = ESP_OK;
-    char* json = cJSON_Print(msg);
-    ESP_LOGD(TAG.c_str(), "Sending %s", json);
-    if (esp_websocket_client_is_connected(client)) {
-      err = esp_websocket_client_send_text(client, json, strlen(json), portMAX_DELAY);
-    }
-    else {
-      err = ESP_FAIL;
-    }
-    return err;
-  }
-
-  //
-  // Protocol Level Messages
-  //
-
-  esp_err_t Identify() {
-    char identify[] = "{ \"op\": 1, \"d\": { \"rpcVersion\": " RPCVERSION " } }";
-    ESP_LOGD(TAG.c_str(), "Sending Identify %s", identify);
-    return esp_websocket_client_send_text(client, identify, sizeof(identify), portMAX_DELAY);
-  }
-
-  esp_err_t GetVersion() {
-    return Request("GetVersion");
-  }
-
-  //
-  // Event handlers
-  //
-  static void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data)
-  {
-    ObsWsClientHost* ws = (ObsWsClientHost*)handler_args;
-    esp_websocket_event_data_t* data = (esp_websocket_event_data_t*)event_data;
-    switch (event_id) {
-
-    case WEBSOCKET_EVENT_CONNECTED:
-      ESP_LOGI(ws->TAG.c_str(), "WEBSOCKET_EVENT_CONNECTED");
-      xSemaphoreGive(ws->connect_sema);
-      break;
-
-    case WEBSOCKET_EVENT_DISCONNECTED:
-      ESP_LOGI(ws->TAG.c_str(), "WEBSOCKET_EVENT_DISCONNECTED");
-      log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
-      if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
-        log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
-        log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
-        log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
+      if (xSemaphoreTake(connect_sema, CONNECT_TIMEOUT_SEC * 1000 / portTICK_PERIOD_MS)) {
+        Identify();
+        return true;
       }
-      break;
+      else {
+        return false;
+      }
+    }
 
-    case WEBSOCKET_EVENT_DATA:
-      ESP_LOGI(ws->TAG.c_str(), "WEBSOCKET_EVENT_DATA payload length=%d, data_len=%d, current payload offset=%d",
-        data->payload_len, data->data_len, data->payload_offset);
-      if (data->payload_len == data->payload_offset + data->data_len) {
-        // Message complete
-        if (data->payload_offset != 0) {
-          ws->assembly.append(data->data_ptr, data->data_len);
+    void Stop()
+    {
+      esp_websocket_client_close(client, portMAX_DELAY);
+      ESP_LOGI(host->TAG.c_str(), "Websocket Stopped");
+    }
+
+    esp_err_t Send(cJSON* msg) {
+      esp_err_t err = ESP_OK;
+      char* json = cJSON_Print(msg);
+      ESP_LOGD(host->TAG.c_str(), "Sending %s", json);
+      if (esp_websocket_client_is_connected(client)) {
+        err = esp_websocket_client_send_text(client, json, strlen(json), portMAX_DELAY);
+      }
+      else {
+        err = ESP_FAIL;
+      }
+      return err;
+    }
+
+    //
+    // Protocol Level Messages
+    //
+    esp_err_t Identify() {
+      char identify[] = "{ \"op\": 1, \"d\": { \"rpcVersion\": " RPCVERSION " } }";
+      ESP_LOGD(host->TAG.c_str(), "Sending Identify %s", identify);
+      return esp_websocket_client_send_text(client, identify, sizeof(identify), portMAX_DELAY);
+    }
+
+    esp_err_t GetVersion() {
+      return Request("GetVersion");
+    }
+  protected:
+    esp_err_t Request(const char* reqName, cJSON* reqData = NULL) {
+      ESP_LOGI(host->TAG.c_str(), "Requesting %s", reqName);
+      cJSON* msg = cJSON_CreateObject();
+      cJSON* d = cJSON_CreateObject();
+
+      cJSON_AddNumberToObject(msg, "op", 6);
+
+      cJSON_AddStringToObject(d, "requestType", reqName);
+      cJSON_AddItemToObject(msg, "d", d);
+      char requestId[30];
+      sprintf(requestId, "%s-%d", REQUEST_ID_SEED, ++requestCount);
+      cJSON_AddStringToObject(d, "requestId", requestId);
+      if (reqData != NULL) {
+        cJSON_AddItemToObject(d, "requestData", reqData);
+      }
+
+      esp_err_t result = Send(msg);
+      cJSON_Delete(msg);
+      return result;
+    }
+
+    //
+    // Event handlers
+    //
+    static void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data)
+    {
+      WsClientInterface* ws = (WsClientInterface*)handler_args;
+      esp_websocket_event_data_t* data = (esp_websocket_event_data_t*)event_data;
+      switch (event_id) {
+
+      case WEBSOCKET_EVENT_CONNECTED:
+        ESP_LOGI(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_CONNECTED");
+        xSemaphoreGive(ws->connect_sema);
+        break;
+
+      case WEBSOCKET_EVENT_DISCONNECTED:
+        ESP_LOGI(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_DISCONNECTED");
+        log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
+        if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
+          log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
+          log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
+          log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
         }
-        switch (data->op_code) {
-        case WS_TRANSPORT_OPCODES_CONT:
-          break;
-        case WS_TRANSPORT_OPCODES_TEXT:
-        {
-          // If received data contains json structure it is valid JSON
-          cJSON* root;
-          if (ws->assembly.length() > 0) {
-            root = cJSON_Parse(ws->assembly.c_str());
+        break;
+
+      case WEBSOCKET_EVENT_DATA:
+        ESP_LOGI(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_DATA payload length=%d, data_len=%d, current payload offset=%d",
+          data->payload_len, data->data_len, data->payload_offset);
+        if (data->payload_len == data->payload_offset + data->data_len) {
+          // Message complete
+          if (data->payload_offset != 0) {
+            ws->assembly.append(data->data_ptr, data->data_len);
           }
-          else {
-            root = cJSON_ParseWithLength(data->data_ptr, data->data_len);
-          }
-          ws->assembly = ""; // Done with assmebly contents
-          if (root) {
-            cJSON *jOp = cJSON_GetObjectItem(root, "op");
-            int op = cJSON_GetNumberValue(jOp);
-            switch (op) {
+          switch (data->op_code) {
+          case WS_TRANSPORT_OPCODES_CONT:
+            break;
+          case WS_TRANSPORT_OPCODES_TEXT:
+          {
+            // If received data contains json structure it is valid JSON
+            cJSON* root;
+            if (ws->assembly.length() > 0) {
+              root = cJSON_Parse(ws->assembly.c_str());
+            }
+            else {
+              root = cJSON_ParseWithLength(data->data_ptr, data->data_len);
+            }
+            ws->assembly = ""; // Done with assmebly contents
+            if (root) {
+              cJSON* jOp = cJSON_GetObjectItem(root, "op");
+              int op = cJSON_GetNumberValue(jOp);
+              switch (op) {
               case Hello:
-                ESP_LOGI(ws->TAG.c_str(), "Hello op.");
+                ESP_LOGI(ws->host->TAG.c_str(), "Hello op.");
                 break;
               case ObsOpcodes::Identify:
-                ESP_LOGE(ws->TAG.c_str(), "UNEXPECTED Identify op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Identify op.");
                 break;
               case Identified:
-                ESP_LOGI(ws->TAG.c_str(), "Identified op.");
+                ESP_LOGI(ws->host->TAG.c_str(), "Identified op.");
                 break;
               case Reidentify:
-                ESP_LOGI(ws->TAG.c_str(), "Reidentify op.");
+                ESP_LOGI(ws->host->TAG.c_str(), "Reidentify op.");
                 break;
               case Event:
-                ESP_LOGI(ws->TAG.c_str(), "Event op.");
+                ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
                 break;
               case ObsOpcodes::Request:
-                ESP_LOGE(ws->TAG.c_str(), "UNEXPECTED Request op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Request op.");
                 break;
               case RequestResponse:
-                ESP_LOGI(ws->TAG.c_str(), "RequestResponse op.");
-                break;
+              {
+                ESP_LOGI(ws->host->TAG.c_str(), "RequestResponse op.");
+                ObjMsgDataRef data = ObjMsgDataJson::Create(
+                  ws->host->origin_id, ws->name.c_str(), root);
+                  ws->host->Produce(data);
+                  // Return so JSON does not get deleted. It is now owned by data
+                  return;
+              }
               case RequestBatch:
-                ESP_LOGE(ws->TAG.c_str(), "UNEXPECTED RequestBatch op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatch op.");
                 break;
               case RequestBatchResponse:
-                ESP_LOGE(ws->TAG.c_str(), "UNEXPECTED RequestBatchResponse op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatchResponse op.");
                 break;
+              }
+              ESP_LOGI(ws->host->TAG.c_str(), "Received JSON=%s", cJSON_Print(root));
+              cJSON_Delete(root);
             }
-              //      cJSON *elem = cJSON_GetArrayItem(root, i);
-              //      cJSON *id = cJSON_GetObjectItem(elem, "id");
-              //      cJSON *name = cJSON_GetObjectItem(elem, "name");
-              //      ESP_LOGW(ws->TAG.c_str(), "Json={'id': '%s', 'name': '%s'}", id->valuestring, name->valuestring);
-            ESP_LOGI(ws->TAG.c_str(), "Received JSON=%s", cJSON_Print(root));
-
-            cJSON_Delete(root);
+            else {
+              ESP_LOGE(ws->host->TAG.c_str(), "Received NON-JSON=%.*s", data->data_len, (char*)data->data_ptr);
+            }
+          }
+          break;
+          case WS_TRANSPORT_OPCODES_BINARY:
+            ESP_LOGI(ws->host->TAG.c_str(), "BINARY not implemented.");
+            break;
+          case WS_TRANSPORT_OPCODES_CLOSE:
+            ESP_LOGW(ws->host->TAG.c_str(), "Received CLOSE with code=%d",
+              256 * data->data_ptr[0] + data->data_ptr[1]);
+            break;
+          case WS_TRANSPORT_OPCODES_PING:
+            ESP_LOGI(ws->host->TAG.c_str(), "Received PING");
+            break;
+          case WS_TRANSPORT_OPCODES_PONG:
+            ESP_LOGI(ws->host->TAG.c_str(), "Received PONG");
+            break;
+          case WS_TRANSPORT_OPCODES_FIN:
+            ESP_LOGI(ws->host->TAG.c_str(), "Received FIN");
+            break;
+          default:
+            ESP_LOGW(ws->host->TAG.c_str(), "Received Unexpected opcode %d", data->op_code);
+            break;
+          }
+        }
+        else {
+          if (ws->assembly.length() != data->payload_offset) {
+            ESP_LOGE(ws->host->TAG.c_str(), "Assembly error, resetting assmebly");
+            ws->assembly = "";
           }
           else {
-            ESP_LOGE(ws->TAG.c_str(), "Received NON-JSON=%.*s", data->data_len, (char*)data->data_ptr);
+            ESP_LOGI(ws->host->TAG.c_str(), "Partial data ... assembling");
+            ws->assembly.append(data->data_ptr, data->data_len);
           }
         }
         break;
-        case WS_TRANSPORT_OPCODES_BINARY:
-          ESP_LOGI(ws->TAG.c_str(), "BINARY not implemented.");
-          break;
-        case WS_TRANSPORT_OPCODES_CLOSE:
-          ESP_LOGW(ws->TAG.c_str(), "Received CLOSE with code=%d",
-            256 * data->data_ptr[0] + data->data_ptr[1]);
-          break;
-        case WS_TRANSPORT_OPCODES_PING:
-          ESP_LOGI(ws->TAG.c_str(), "Received PING");
-          break;
-        case WS_TRANSPORT_OPCODES_PONG:
-          ESP_LOGI(ws->TAG.c_str(), "Received PONG");
-          break;
-        case WS_TRANSPORT_OPCODES_FIN:
-          ESP_LOGI(ws->TAG.c_str(), "Received FIN");
-          break;
-        default:
-          ESP_LOGW(ws->TAG.c_str(), "Received Unexpected opcode %d", data->op_code);
-          break;
-        }
-      }
-      else {
-        if (ws->assembly.length() != data->payload_offset) {
-          ESP_LOGE(ws->TAG.c_str(), "Assembly error, resetting assmebly");
-          ws->assembly = "";
-        }
-        else {
-          ESP_LOGI(ws->TAG.c_str(), "Partial data ... assembling");
-          ws->assembly.append(data->data_ptr, data->data_len);
-        }
-      }
-      break;
 
-    case WEBSOCKET_EVENT_ERROR:
-      ESP_LOGD(ws->TAG.c_str(), "WEBSOCKET_EVENT_ERROR");
-      log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
-      if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
-        log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
-        log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
-        log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
+      case WEBSOCKET_EVENT_ERROR:
+        ESP_LOGD(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_ERROR");
+        log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
+        if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
+          log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
+          log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
+          log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
+        }
+        break;
       }
-      break;
     }
-  }
-
-protected:
-
-  esp_err_t Request(const char* reqName, cJSON* reqData = NULL) {
-    ESP_LOGI(TAG.c_str(), "Requesting %s", reqName);
-    cJSON* msg = cJSON_CreateObject();
-    cJSON* d = cJSON_CreateObject();
-
-    cJSON_AddNumberToObject(msg, "op", 6);
-
-    cJSON_AddStringToObject(d, "requestType", reqName);
-    cJSON_AddItemToObject(msg, "d", d);
-    char requestId[30];
-    sprintf(requestId, "%s-%d", REQUEST_ID_SEED, ++requestCount);
-    cJSON_AddStringToObject(d, "requestId", requestId);
-    if (reqData != NULL) {
-      cJSON_AddItemToObject(d, "requestData", reqData);
+    static void log_error_if_nonzero(const char* message, int error_code)
+    {
+      if (error_code != 0) {
+        ESP_LOGE("ObsWsClientHost", "Last error %s: 0x%x", message, error_code);
+      }
     }
+  };
 
-    esp_err_t result = Send(msg);
-    cJSON_Delete(msg);
-    return result;
-  }
-
-  static void log_error_if_nonzero(const char* message, int error_code)
+  unordered_map<string, WsClientInterface*> interfaces;
+public:
+  ObsWsClientHost(ObjMsgTransport* transport, uint16_t origin)
+    : ObjMsgHost(transport, "ObsWsClientHost", origin)
   {
-    if (error_code != 0) {
-      ESP_LOGE("ObsWsClientHost", "Last error %s: 0x%x", message, error_code);
-    }
   }
+
+  WsClientInterface* Add(string name, const char* url)
+  {
+    interfaces[name] = new WsClientInterface(name, url, this);
+    // Select the last interface as active
+    //selectedInterface = interfaces[name];
+
+    ObjMsgData::RegisterClass(origin_id, name, ObjMsgDataJson::Create);
+
+    return interfaces[name];
+  }
+  bool Start() { return false; }
 };
