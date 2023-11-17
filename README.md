@@ -63,7 +63,7 @@ content as a ObjMsgDataRef.
  (controller) to deliver ObjMsgData.
 
 ### ObjMsgHost Implementations
-Example implementations include AdcHost, GpioHost, ServoHost, WebsocketHost, LvglHost, JoystickHost 
+Example implementations include **AdcHost, AvDeviceWsClientHost, GpioHost, Joystick3AxisHost, JoystickHost, LvglHost, ObsWsClientHost, PcntHost, ServoHost, ViscaHost, WebsocketHost.**
 
 ## ObjMsgDataFactory
  The ObjMsgDataFactory supports creation of a ObjMsgData object based on received data. Each endpoint supporting
