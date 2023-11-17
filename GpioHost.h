@@ -61,7 +61,7 @@ public:
   uint8_t value; // Measured value
 };
 
-/// ObjMsgHost, hosing GPIO Ports
+/// An ObjMsgHost object, hosting GPIO Ports
 class GpioHost : public ObjMsgHost
 {
 public:

@@ -20,6 +20,7 @@
 //#define ZOOM_SPEED(x) ((ZOOM_MAX_SPEED - ZOOM_MIN_SPEED + 1) * adc1_get_raw(ZOOM_SLIDER) / SLIDER_MAX * (x - 1) / 9 + ZOOM_MIN_SPEED)
 #define ZOOM_SPEED(x) ((ZOOM_MAX_SPEED - ZOOM_MIN_SPEED) * (x - 1) / 99 + ZOOM_MIN_SPEED)
 
+/// @brief  An ObjMsgHost object, hosting VISCA interfaces
 class ViscaHost : public ObjMsgHost
 {
 public:

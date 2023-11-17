@@ -16,7 +16,7 @@
 // Sample count to average
 #define NO_OF_SAMPLES 5
 
-/// ObjMsgHost, hosting joysticks
+/// An ObjMsgHost object, hosting joysticks
 class JoystickHost : public ObjMsgHost
 {
 public:

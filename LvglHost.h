@@ -17,6 +17,7 @@
 // typedef ObjMsgDataInt ObjMsgServoData;
 typedef bool (*lvglVirtualComsumer)(LvglHost *host, ObjMsgData *data);
 
+/// @brief An ObjMsgHost object, hosting Lvgl Produce / Consume
 class LvglHost : public ObjMsgHost
 {
   typedef struct

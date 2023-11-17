@@ -35,6 +35,7 @@ enum ObsOpcodes {
   RequestBatchResponse = 9,/**< The message sent by obs-websocket in response to a particular batch of requests from a client. */
 };
 
+/// @brief An ObjMsgHost object, hosting OBS Studio websocket interfaces
 class ObsWsClientHost : public ObjMsgHost
 {
 public:

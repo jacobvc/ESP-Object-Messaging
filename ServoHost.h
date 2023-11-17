@@ -26,6 +26,7 @@
 
 typedef ObjMsgDataInt ObjMsgServoData;
 
+/// @brief  An ObjMsgHost object, hosting servos
 class ServoHost : public ObjMsgHost
 {
 public:

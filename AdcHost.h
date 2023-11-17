@@ -96,7 +96,11 @@ protected:
   int value;  ///< Measured value
 };
 
-/// ObjMsgHost, hosting ADC_UNIT_1
+/// An ObjMsgHost, hosting analog channels using ADC_UNIT_1
+///
+/// Supports analog input channels using ADC_UNIT_1. 
+///
+/// Does NOT support Consume();
 class AdcHost : public ObjMsgHost
 {
 public:
@@ -126,8 +130,8 @@ public:
   /// @param atten 
   /// @param bitwidth 
   /// @param maxCounts: ADC channel configured max value
-  /// @param min: Calculated value for ZERO count
-  /// @param max: Calculated value for maxCount
+  /// @param min: Value calculated for ZERO count
+  /// @param max: Value calculated for maxCount
   /// @return added channel
   AdcChannel *Add(string name, ObjMsgSample mode, adc_channel_t channel, 
     adc_atten_t atten, adc_bitwidth_t bitwidth,

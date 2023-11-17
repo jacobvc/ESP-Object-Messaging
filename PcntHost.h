@@ -49,7 +49,7 @@ public:
   int value; // Measured value
 };
 
-/// ObjMsgHost, hosing Pulse Count units
+/// An ObjMsgHost object, hosting Pulse Count units
 class PcntHost : public ObjMsgHost
 {
 public:
