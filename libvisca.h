@@ -397,7 +397,7 @@ extern "C" {
 #define VISCA_SERIAL_WAIT              100000
 
 /* size of the local packet buffer */
-#define VISCA_INPUT_BUFFER_SIZE          1024
+#define VISCA_INPUT_BUFFER_SIZE          128
 
 /* This is the interface for the Windows platform.
  */
@@ -499,6 +499,8 @@ typedef struct _VISCA_interface
     int (*write_bytes)(struct _VISCA_interface* device, const void* src, size_t size);
     int (*read_bytes)(struct _VISCA_interface* device, void* buf, uint32_t length, TickType_t ticks_to_wait);
 
+    bool connected;
+
 	// TCP
     const char* ip;
     uint16_t ip_port;
@@ -506,6 +508,8 @@ typedef struct _VISCA_interface
 
     // RS232
     uart_port_t ser_device;
+    int rxpin;
+    int txpin;
 #else	
   // RS232 data:
   int port_fd;
@@ -589,10 +593,14 @@ _VISCA_get_byte(VISCAInterface_t *iface, unsigned char *byte);
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 VISCA_API uint32_t
-VISCA_open_serial(VISCAInterface_t* iface, uart_port_t device, int rxpin, int txpin);
+VISCA_configure_serial(VISCAInterface_t* iface, uart_port_t device, int rxpin, int txpin);
 
 VISCA_API uint32_t
-VISCA_open_tcp(VISCAInterface_t* iface, const char* ip, uint16_t port);
+VISCA_configure_tcp(VISCAInterface_t* iface, const char* ip, uint16_t port);
+
+uint32_t
+VISCA_open_interface(VISCAInterface_t* iface);
+
 #else
 VISCA_API uint32_t
 VISCA_open_serial(VISCAInterface_t *iface, const char *device_name);

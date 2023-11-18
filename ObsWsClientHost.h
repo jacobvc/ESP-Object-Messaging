@@ -74,7 +74,7 @@ public:
     ~WsClientInterface() {
       esp_websocket_client_destroy(client);
     }
-    bool Start()
+    bool Open()
     {
       ESP_LOGI(host->TAG.c_str(), "Connecting to %s...", websocket_cfg.uri);
 
@@ -85,14 +85,19 @@ public:
         return true;
       }
       else {
+        Close();
         return false;
       }
     }
 
-    void Stop()
+    void Close()
     {
       esp_websocket_client_close(client, portMAX_DELAY);
       ESP_LOGI(host->TAG.c_str(), "Websocket Stopped");
+    }
+
+    bool IsConnected() {
+      return esp_websocket_client_is_connected(client);
     }
 
     esp_err_t Send(cJSON* msg) {
@@ -303,5 +308,5 @@ public:
 
     return interfaces[name];
   }
-  bool Start() { return false; }
+  bool Start() { return true; }
 };

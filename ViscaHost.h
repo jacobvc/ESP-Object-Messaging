@@ -28,19 +28,46 @@ public:
   public:
     string name;
     ViscaInterface(string name, uart_port_t device, int rxpin, int txpin)
-      : name(name), ser_device(device), rxpin(rxpin), txpin(txpin) {
-      ip = "";
+      : name(name) {
+      if (VISCA_configure_serial(&intf, device, rxpin, txpin) != VISCA_SUCCESS) {
+      }
+      intf.broadcast = 0;
+      camera.address = 1;
     }
     ViscaInterface(string name, const char* ip, int port)
-      : name(name), ip(ip), port(port) {}
+      : name(name) {
+      if (VISCA_configure_tcp(&intf, ip, port) != VISCA_SUCCESS) {
+      }
+      intf.broadcast = 0;
+      camera.address = 1;
+    }
     VISCAInterface_t intf;
     VISCACamera_t camera;
-    string ip;
-    uint16_t port;
-    uart_port_t ser_device;
-    int rxpin;
-    int txpin;
+    
+    bool Open()
+    {
+      int camera_num;
+
+      if (VISCA_open_interface(&intf) != VISCA_SUCCESS) {
+        ESP_LOGE("VISCA", "Unable to open interface.");
+        return false;
+      }
+      else {
+        // Initialize VISCA interface
+        VISCA_set_address(&intf, &camera_num);
+        VISCA_clear(&intf, &camera);
+
+        print_camera_info(this);
+        ESP_LOGI("VISCA", "Open success.\n");
+        return true;
+      }
+    }
+
+    bool IsConnected() {
+      return intf.connected;
+    }
   };
+
   QueueHandle_t visca_queue;
   ViscaInterface* selectedInterface;
   unordered_map<string, ViscaInterface*> interfaces;
@@ -58,7 +85,7 @@ public:
       CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 2048, this, 10, NULL);
   }
 
-  int Add(string name, const char* ip, uint16_t port)
+  ViscaInterface* Add(string name, const char* ip, uint16_t port)
   {
     interfaces[name] = new ViscaInterface(name, ip, port);
     // Select the last interface as active
@@ -66,9 +93,9 @@ public:
 
     ObjMsgData::RegisterClass(origin_id, name, Joystick3AxisData::Create);
 
-    return 0;
+    return interfaces[name];
   }
-  int Add(string name, uart_port_t device, int rxpin, int txpin)
+  ViscaInterface* Add(string name, uart_port_t device, int rxpin, int txpin)
   {
     interfaces[name] = new ViscaInterface(name, device, rxpin, txpin);
     // Select the last interface as active
@@ -76,41 +103,13 @@ public:
 
     ObjMsgData::RegisterClass(origin_id, name, Joystick3AxisData::Create);
 
-    return 0;
+    return interfaces[name];
   }
 
   bool Start()
   {
     bool result = true;
-    unordered_map<string, ViscaInterface*>::iterator it;
-    for (it = interfaces.begin(); it != interfaces.end(); it++) {
-      ViscaInterface* vf = it->second;
-      int camera_num;
 
-      // Open VISCA port
-      if (vf->ip.empty()) {
-        if (VISCA_open_serial(&vf->intf, vf->ser_device, vf->rxpin, vf->txpin) != VISCA_SUCCESS) {
-          ESP_LOGE(TAG.c_str(), "Unable to open serial port.");
-          result = false;
-          continue;
-        }
-      }
-      else {
-        if (VISCA_open_tcp(&vf->intf, vf->ip.c_str(), vf->port) != VISCA_SUCCESS) {
-          ESP_LOGE(TAG.c_str(), "Unable to open TCP Port.");
-          result = false;
-          continue;
-        }
-      }
-      // Initialize VISCA interface
-      vf->intf.broadcast = 0;
-      VISCA_set_address(&vf->intf, &camera_num);
-      vf->camera.address = 1;
-      VISCA_clear(&vf->intf, &vf->camera);
-
-      print_camera_info(vf);
-      ESP_LOGI(TAG.c_str(), "Open success.\n");
-    }
     return result;
   }
 
