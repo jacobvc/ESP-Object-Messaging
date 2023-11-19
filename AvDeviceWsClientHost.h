@@ -15,8 +15,8 @@ public:
   {
 public:
     // Constructor
-    AvdClientInterface(string name, string uri, AvDeviceWsClientHost* host)
-      : WsClientInterface(name, uri, host) {}
+    AvdClientInterface(string name, string uri, AvDeviceWsClientHost* host, bool autoConnect)
+      : WsClientInterface(name, uri, host, autoConnect) {}
 
     /// @brief  Request for AvDeviceControl to Disconnect specified device
     /// @param device - Device name to disconnect
@@ -115,9 +115,9 @@ public:
   /// @param name - Name of data object
   /// @param uri - Websocket connection endpoint
   /// @return - pointer too new AvdClientInterface
-  AvdClientInterface *Add(string name, const char* uri)
+  AvdClientInterface *Add(string name, const char* uri, bool autoConnect = true)
   {
-    interfaces[name] = new AvdClientInterface(name, uri, this);
+    interfaces[name] = new AvdClientInterface(name, uri, this, autoConnect);
 
     ObjMsgData::RegisterClass(origin_id, name, ObjMsgDataJson::Create);
 

@@ -45,6 +45,7 @@ public:
 
     string uri;
     ObsWsClientHost* host;
+    bool autoConnect;
     esp_websocket_client_config_t websocket_cfg;
     string assembly;
 
@@ -53,8 +54,8 @@ public:
     SemaphoreHandle_t connect_sema;
     bool identified;
 
-    WsClientInterface(string name, string uri, ObsWsClientHost* host)
-      : name(name), uri(uri), host(host), websocket_cfg{}
+    WsClientInterface(string name, string uri, ObsWsClientHost* host, bool autoConnect)
+      : name(name), uri(uri), host(host),  autoConnect(autoConnect), websocket_cfg{}
     {
 
       websocket_cfg.uri = uri.c_str();
@@ -103,11 +104,16 @@ public:
     esp_err_t Send(cJSON* msg) {
       esp_err_t err = ESP_OK;
       char* json = cJSON_Print(msg);
-      ESP_LOGD(host->TAG.c_str(), "Sending %s", json);
-      if (esp_websocket_client_is_connected(client)) {
+      if (!IsConnected() && autoConnect) {
+        ESP_LOGI(host->TAG.c_str(), "Autoconnect before sending.");
+        Open();
+      }
+      if (IsConnected()) {
+        ESP_LOGD(host->TAG.c_str(), "Sending %s", json);
         err = esp_websocket_client_send_text(client, json, strlen(json), portMAX_DELAY);
       }
       else {
+        ESP_LOGW(host->TAG.c_str(), "Send failed! Not connected");
         err = ESP_FAIL;
       }
       return err;
@@ -298,9 +304,9 @@ public:
   {
   }
 
-  WsClientInterface* Add(string name, const char* url)
+  WsClientInterface* Add(string name, const char* url, bool autoConnect = true)
   {
-    interfaces[name] = new WsClientInterface(name, url, this);
+    interfaces[name] = new WsClientInterface(name, url, this, autoConnect);
     // Select the last interface as active
     //selectedInterface = interfaces[name];
 

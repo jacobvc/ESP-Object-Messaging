@@ -17,10 +17,10 @@
 
 /* implemented in libvisca.c
  */
-void _VISCA_append_byte(VISCAPacket_t *packet, unsigned char byte);
-void _VISCA_init_packet(VISCAPacket_t *packet);
-unsigned int _VISCA_get_reply(VISCAInterface_t *iface, VISCACamera_t *camera);
-unsigned int _VISCA_send_packet_with_reply(VISCAInterface_t *iface, VISCACamera_t *camera, VISCAPacket_t *packet);
+void _VISCA_append_byte(VISCAPacket_t* packet, unsigned char byte);
+void _VISCA_init_packet(VISCAPacket_t* packet);
+unsigned int _VISCA_get_reply(VISCAInterface_t* iface, VISCACamera_t* camera);
+unsigned int _VISCA_send_packet_with_reply(VISCAInterface_t* iface, VISCACamera_t* camera, VISCAPacket_t* packet);
 
 
 #define TAG "ViscaEsp32"
@@ -64,7 +64,7 @@ uint32_t _VISCA_tx_ready(VISCAInterface_t* iface)
 }
 
 uint32_t
-_VISCA_get_byte(VISCAInterface_t* iface, unsigned char *byte) {
+_VISCA_get_byte(VISCAInterface_t* iface, unsigned char* byte) {
   int bytes = iface->read_bytes(iface, byte, 1, 500 / portTICK_PERIOD_MS);
   if (bytes < 0) {
     return VISCA_FAILURE;
@@ -76,7 +76,7 @@ _VISCA_get_byte(VISCAInterface_t* iface, unsigned char *byte) {
 
 
 /***********************************/
-/*       SYSTEM  FUNCTIONS         */
+/*       TRANSPORT BINDING         */
 /***********************************/
 
 int serial_write_bytes(struct _VISCA_interface* device, const void* src, size_t size)
@@ -89,62 +89,70 @@ int serial_read_bytes(struct _VISCA_interface* device, void* buf, uint32_t lengt
   return uart_read_bytes(device->ser_device, buf, length, ticks_to_wait);
 }
 
-void _tcp_disconnect(VISCAInterface_t* iface)
+void _tcp_disconnect(VISCAInterface_t* device)
 {
-  if (iface->socket >= 0) {
+  if (device->socket >= 0) {
     ESP_LOGE(TAG, "Shutting down socket and restarting...");
-    shutdown(iface->socket, 0);
-    iface->connected = false;
-    close(iface->socket);
+    shutdown(device->socket, 0);
+    device->connected = false;
+    close(device->socket);
   }
 }
 
-bool _tcp_connect(VISCAInterface_t* iface)
+bool _tcp_connect(VISCAInterface_t* device)
 {
   int addr_family = 0;
   int ip_protocol = 0;
 
   struct sockaddr_in dest_addr;
-  inet_pton(AF_INET, iface->ip, &dest_addr.sin_addr);
+  inet_pton(AF_INET, device->ip, &dest_addr.sin_addr);
   dest_addr.sin_family = AF_INET;
-  dest_addr.sin_port = htons(iface->ip_port);
+  dest_addr.sin_port = htons(device->ip_port);
   addr_family = AF_INET;
   ip_protocol = IPPROTO_IP;
 
-  iface->connected = false;
+  device->connected = false;
 
-  iface->socket = socket(addr_family, SOCK_STREAM, ip_protocol);
-  if (iface->socket < 0) {
+  device->socket = socket(addr_family, SOCK_STREAM, ip_protocol);
+  if (device->socket < 0) {
     ESP_LOGE(TAG, "Unable to create socket: (error %d) %s", errno, esp_err_to_name(errno));
     return false;
   }
-  ESP_LOGI(TAG, "Socket created, connecting to %s:%d", iface->ip, iface->ip_port);
+  ESP_LOGI(TAG, "Socket created, connecting to %s:%d", device->ip, device->ip_port);
   struct timeval to;
 
   to.tv_sec = 1;
   to.tv_usec = 0;
-  if (setsockopt(iface->socket, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof(to)) < 0) {
+  if (setsockopt(device->socket, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof(to)) < 0) {
     ESP_LOGE(TAG, "Unable to set read timeout on socket!");
     //return false;
   }
-  int err = connect(iface->socket, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
+  int err = connect(device->socket, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
   if (err != 0) {
     ESP_LOGE(TAG, "Socket unable to connect: (error %d) %s", errno, esp_err_to_name(errno));
     return false;
   }
-  ESP_LOGI(TAG, "Successfully connected (socket %d)", iface->socket);
-  iface->connected = true;
+  ESP_LOGI(TAG, "Successfully connected (socket %d)", device->socket);
+  device->connected = true;
   return true;
 }
 
 int _tcp_write_bytes(struct _VISCA_interface* device, const void* src, size_t size)
 {
-  int err = send(device->socket, src, size, 0);
-  if (err < 0) {
-    ESP_LOGE(TAG, "Error occurred during sending: (error %d) %s", errno, esp_err_to_name(errno));
-    _tcp_disconnect(device);
+  if (!device->connected && device->autoConnect) {
     _tcp_connect(device);
-    return 0;
+  }
+  if (device->connected) {
+    int err = send(device->socket, src, size, 0);
+    if (err < 0) {
+      ESP_LOGE(TAG, "Error occurred during sending: (error %d) %s", errno, esp_err_to_name(errno));
+      _tcp_disconnect(device);
+      _tcp_connect(device);
+      return 0;
+    }
+  }
+  else {
+    ESP_LOGE(TAG, "TCP Not Connected");
   }
 
   return size;
@@ -156,9 +164,9 @@ int _tcp_read_bytes(struct _VISCA_interface* device, void* buf, uint32_t length,
   // Error occurred during receiving
   if (len < 0) {
     ESP_LOGE(TAG, "recv failed: (error %d) %s", errno, esp_err_to_name(errno));
-   // _tcp_disconnect(device);
-   // _tcp_connect(device);
-   // len = 0;
+    // _tcp_disconnect(device);
+    // _tcp_connect(device);
+    // len = 0;
   }
   else {
     //ESP_LOGI(TAG, "Received %d bytes from %s: 0x%02x", len, device->ip, *(char *)buf);
@@ -167,34 +175,74 @@ int _tcp_read_bytes(struct _VISCA_interface* device, void* buf, uint32_t length,
 }
 
 uint32_t
-VISCA_configure_tcp(VISCAInterface_t* iface, const char* ip, uint16_t port)
+VISCA_configure_tcp(VISCAInterface_t* device, const char* ip, uint16_t port)
 {
-  if (!iface || port == 0xffff) {
+  if (!device || port == 0xffff) {
 #ifdef DEBUG
     printf("VISCA_open_tcp: bad parms\n");
 #endif
     return VISCA_FAILURE;
   }
-  iface->write_bytes = _tcp_write_bytes;
-  iface->read_bytes = _tcp_read_bytes;
+  device->write_bytes = _tcp_write_bytes;
+  device->read_bytes = _tcp_read_bytes;
 
-  iface->if_type = TCP_IFT;
-  iface->ip = ip;
-  iface->ip_port = port;
-  iface->address = 0;
+  device->if_type = TCP_IFT;
+  device->ip = ip;
+  device->ip_port = port;
+  device->address = 0;
+
+  return VISCA_SUCCESS;
+}
+uint32_t
+VISCA_configure_serial(VISCAInterface_t* device, uart_port_t port, int rxpin, int txpin)
+{
+  if (!device) {
+#ifdef DEBUG
+    printf("VISCA_open_serial: bad parms\n");
+#endif
+    device->connected = false;
+    return VISCA_FAILURE;
+  }
+
+  device->if_type = SERIAL_IFT;
+  device->address = 0;
+  device->ser_device = port;
+  device->rxpin = rxpin;
+  device->txpin = txpin;
+  device->write_bytes = serial_write_bytes;
+  device->read_bytes = serial_read_bytes;
 
   return VISCA_SUCCESS;
 }
 
 uint32_t
-VISCA_open_interface(VISCAInterface_t* iface)
+VISCA_close_serial(VISCAInterface_t* device)
 {
-  if (iface->if_type == TCP_IFT) {
-    if (_tcp_connect(iface)) {
+  if (!device) {
+#ifdef DEBUG
+    printf("_VISCA_close_serial: bad header parms\n");
+#endif
+    return VISCA_FAILURE;
+  }
+  uart_driver_delete(device->ser_device);
+  return VISCA_SUCCESS;
+}
+
+uint32_t VISCA_usleep(uint32_t useconds)
+{
+  vTaskDelay(pdMS_TO_TICKS(useconds / 1000));
+  return 0;
+}
+
+uint32_t
+VISCA_open_interface(VISCAInterface_t* device)
+{
+  if (device->if_type == TCP_IFT) {
+    if (_tcp_connect(device)) {
       return VISCA_SUCCESS;
     }
     else {
-      iface->connected = false;
+      device->connected = false;
       return VISCA_FAILURE;
     }
   }
@@ -211,58 +259,17 @@ VISCA_open_interface(VISCAInterface_t* iface)
         .source_clk = UART_SCLK_APB,
     };
 
-  int intr_alloc_flags = 0;
+    int intr_alloc_flags = 0;
 
 #if CONFIG_UART_ISR_IN_IRAM
-  intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+    intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
-    ESP_ERROR_CHECK(uart_driver_install(iface->ser_device, RX_BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
-    ESP_ERROR_CHECK(uart_param_config(iface->ser_device, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(iface->ser_device, iface->txpin, iface->rxpin, 0, 0));
-    iface->address = 0;
+    ESP_ERROR_CHECK(uart_driver_install(device->ser_device, RX_BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_param_config(device->ser_device, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(device->ser_device, device->txpin, device->rxpin, 0, 0));
+    device->address = 0;
 
-    iface->connected = true;
+    device->connected = true;
     return VISCA_SUCCESS;
   }
-}
-
-uint32_t
-VISCA_configure_serial(VISCAInterface_t* iface, uart_port_t device, int rxpin, int txpin)
-{
-  if (!iface) {
-#ifdef DEBUG
-    printf("VISCA_open_serial: bad parms\n");
-#endif
-    iface->connected = false;
-    return VISCA_FAILURE;
-  }
-
-  iface->if_type = SERIAL_IFT;
-  iface->address = 0;
-  iface->ser_device = device;
-  iface->rxpin = rxpin;
-  iface->txpin = txpin;
-  iface->write_bytes = serial_write_bytes;
-  iface->read_bytes = serial_read_bytes;
-
-  return VISCA_SUCCESS;
-}
-
-uint32_t
-VISCA_close_serial(VISCAInterface_t* iface)
-{
-  if (!iface) {
-#ifdef DEBUG
-    printf("_VISCA_close_serial: bad header parms\n");
-#endif
-    return VISCA_FAILURE;
-  }
-  uart_driver_delete(iface->ser_device);
-  return VISCA_SUCCESS;
-}
-
-uint32_t VISCA_usleep(uint32_t useconds)
-{
-  vTaskDelay(pdMS_TO_TICKS(useconds / 1000));
-  return 0;
 }

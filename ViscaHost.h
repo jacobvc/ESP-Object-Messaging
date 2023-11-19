@@ -27,17 +27,20 @@ public:
   class ViscaInterface {
   public:
     string name;
-    ViscaInterface(string name, uart_port_t device, int rxpin, int txpin)
+    ViscaInterface(string name, uart_port_t device, int rxpin, int txpin, bool autoConnect)
       : name(name) {
       if (VISCA_configure_serial(&intf, device, rxpin, txpin) != VISCA_SUCCESS) {
       }
+      intf.autoConnect = autoConnect;
       intf.broadcast = 0;
       camera.address = 1;
+
     }
-    ViscaInterface(string name, const char* ip, int port)
+    ViscaInterface(string name, const char* ip, int port, bool autoConnect)
       : name(name) {
       if (VISCA_configure_tcp(&intf, ip, port) != VISCA_SUCCESS) {
       }
+      intf.autoConnect = autoConnect;
       intf.broadcast = 0;
       camera.address = 1;
     }
@@ -85,9 +88,9 @@ public:
       CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 2048, this, 10, NULL);
   }
 
-  ViscaInterface* Add(string name, const char* ip, uint16_t port)
+  ViscaInterface* Add(string name, const char* ip, uint16_t port, bool autoConnect = true)
   {
-    interfaces[name] = new ViscaInterface(name, ip, port);
+    interfaces[name] = new ViscaInterface(name, ip, port, autoConnect);
     // Select the last interface as active
     selectedInterface = interfaces[name];
 
@@ -95,9 +98,9 @@ public:
 
     return interfaces[name];
   }
-  ViscaInterface* Add(string name, uart_port_t device, int rxpin, int txpin)
+  ViscaInterface* Add(string name, uart_port_t device, int rxpin, int txpin, bool autoConnect = true)
   {
-    interfaces[name] = new ViscaInterface(name, device, rxpin, txpin);
+    interfaces[name] = new ViscaInterface(name, device, rxpin, txpin, autoConnect);
     // Select the last interface as active
     selectedInterface = interfaces[name];
 

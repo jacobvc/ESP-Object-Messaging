@@ -500,6 +500,7 @@ typedef struct _VISCA_interface
     int (*read_bytes)(struct _VISCA_interface* device, void* buf, uint32_t length, TickType_t ticks_to_wait);
 
     bool connected;
+    bool autoConnect;
 
 	// TCP
     const char* ip;
@@ -593,13 +594,13 @@ _VISCA_get_byte(VISCAInterface_t *iface, unsigned char *byte);
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 VISCA_API uint32_t
-VISCA_configure_serial(VISCAInterface_t* iface, uart_port_t device, int rxpin, int txpin);
+VISCA_configure_serial(VISCAInterface_t* device, uart_port_t port, int rxpin, int txpin);
 
 VISCA_API uint32_t
-VISCA_configure_tcp(VISCAInterface_t* iface, const char* ip, uint16_t port);
+VISCA_configure_tcp(VISCAInterface_t* device, const char* ip, uint16_t port);
 
 uint32_t
-VISCA_open_interface(VISCAInterface_t* iface);
+VISCA_open_interface(VISCAInterface_t* device);
 
 #else
 VISCA_API uint32_t
