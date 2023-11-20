@@ -218,8 +218,13 @@ public:
                 ESP_LOGE(ws->host->TAG.c_str(), "Unexpected Reidentify op.");
                 break;
               case Event:
+              {
                 ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
-                break;
+                ObjMsgDataRef data = ObjMsgDataJson::Create(
+                  ws->host->origin_id, ws->name.c_str(), root);
+                ws->host->Produce(data);
+                return;
+              }
               case ObsOpcodes::Request:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Request op.");
                 break;
@@ -317,4 +322,35 @@ public:
     return interfaces[name];
   }
   bool Start() { return true; }
+
+  static cJSON* GetResponseData(cJSON* root, string& requestType) {
+    cJSON* jOp = cJSON_GetObjectItem(root, "op");
+    int op = cJSON_GetNumberValue(jOp);
+    if (op == RequestResponse) {
+      cJSON* jData = cJSON_GetObjectItem(root, "d");
+      if (jData) {
+        cJSON* jValue = cJSON_GetObjectItem(jData, "requestType");
+        if (jValue) {
+          requestType = cJSON_GetStringValue(jValue);
+          return cJSON_GetObjectItem(jData, "responseData");
+        }
+      }
+    }
+    return NULL;
+  }
+  static cJSON* GetEventData(cJSON* root, string& eventType) {
+    cJSON* jOp = cJSON_GetObjectItem(root, "op");
+    int op = cJSON_GetNumberValue(jOp);
+    if (op == Event) {
+      cJSON* jData = cJSON_GetObjectItem(root, "d");
+      if (jData) {
+        cJSON* jValue = cJSON_GetObjectItem(jData, "eventType");
+        if (jValue) {
+          eventType = cJSON_GetStringValue(jValue);
+          return jData;
+        }
+      }
+    }
+    return NULL;
+  }
 };
