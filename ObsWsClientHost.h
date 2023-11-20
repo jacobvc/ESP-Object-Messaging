@@ -55,7 +55,7 @@ public:
     bool identified;
 
     WsClientInterface(string name, string uri, ObsWsClientHost* host, bool autoConnect)
-      : name(name), uri(uri), host(host),  autoConnect(autoConnect), websocket_cfg{}
+      : name(name), uri(uri), host(host), autoConnect(autoConnect), websocket_cfg{}
     {
 
       websocket_cfg.uri = uri.c_str();
@@ -178,8 +178,10 @@ public:
         break;
 
       case WEBSOCKET_EVENT_DATA:
-        ESP_LOGI(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_DATA payload length=%d, data_len=%d, current payload offset=%d",
-          data->payload_len, data->data_len, data->payload_offset);
+        if (data->payload_len > 0 && data->data_len > 0) {
+          ESP_LOGD(ws->host->TAG.c_str(), "WEBSOCKET_EVENT_DATA payload length=%d, data_len=%d, current payload offset=%d",
+            data->payload_len, data->data_len, data->payload_offset);
+        }
         if (data->payload_len == data->payload_offset + data->data_len) {
           // Message complete
           if (data->payload_offset != 0) {
@@ -204,16 +206,16 @@ public:
               int op = cJSON_GetNumberValue(jOp);
               switch (op) {
               case Hello:
-                ESP_LOGI(ws->host->TAG.c_str(), "Hello op.");
+                ESP_LOGD(ws->host->TAG.c_str(), "Hello op.");
                 break;
               case ObsOpcodes::Identify:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Identify op.");
                 break;
               case Identified:
-                ESP_LOGI(ws->host->TAG.c_str(), "Identified op.");
+                ESP_LOGD(ws->host->TAG.c_str(), "Identified op.");
                 break;
               case Reidentify:
-                ESP_LOGI(ws->host->TAG.c_str(), "Reidentify op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Unexpected Reidentify op.");
                 break;
               case Event:
                 ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
@@ -226,9 +228,9 @@ public:
                 ESP_LOGI(ws->host->TAG.c_str(), "RequestResponse op.");
                 ObjMsgDataRef data = ObjMsgDataJson::Create(
                   ws->host->origin_id, ws->name.c_str(), root);
-                  ws->host->Produce(data);
-                  // Return so JSON does not get deleted. It is now owned by data
-                  return;
+                ws->host->Produce(data);
+                // Return so JSON does not get deleted. It is now owned by data
+                return;
               }
               case RequestBatch:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatch op.");
@@ -237,7 +239,7 @@ public:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatchResponse op.");
                 break;
               }
-              ESP_LOGD(ws->host->TAG.c_str(), "Received JSON=%s", cJSON_Print(root));
+              ESP_LOGI(ws->host->TAG.c_str(), "JSON=%s", cJSON_Print(root));
               cJSON_Delete(root);
             }
             else {
@@ -246,20 +248,20 @@ public:
           }
           break;
           case WS_TRANSPORT_OPCODES_BINARY:
-            ESP_LOGI(ws->host->TAG.c_str(), "BINARY not implemented.");
+            ESP_LOGW(ws->host->TAG.c_str(), "BINARY not implemented.");
             break;
           case WS_TRANSPORT_OPCODES_CLOSE:
             ESP_LOGW(ws->host->TAG.c_str(), "Received CLOSE with code=%d",
               256 * data->data_ptr[0] + data->data_ptr[1]);
             break;
           case WS_TRANSPORT_OPCODES_PING:
-            ESP_LOGI(ws->host->TAG.c_str(), "Received PING");
+            ESP_LOGD(ws->host->TAG.c_str(), "Received PING");
             break;
           case WS_TRANSPORT_OPCODES_PONG:
-            ESP_LOGI(ws->host->TAG.c_str(), "Received PONG");
+            ESP_LOGD(ws->host->TAG.c_str(), "Received PONG");
             break;
           case WS_TRANSPORT_OPCODES_FIN:
-            ESP_LOGI(ws->host->TAG.c_str(), "Received FIN");
+            ESP_LOGD(ws->host->TAG.c_str(), "Received FIN");
             break;
           default:
             ESP_LOGW(ws->host->TAG.c_str(), "Received Unexpected opcode %d", data->op_code);
