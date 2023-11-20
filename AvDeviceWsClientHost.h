@@ -11,9 +11,9 @@ class AvDeviceWsClientHost : public ObsWsClientHost
 {
 public:
   /// @brief Interface for connection instance
-  class AvdClientInterface : public WsClientInterface 
+  class AvdClientInterface : public WsClientInterface
   {
-public:
+  public:
     // Constructor
     AvdClientInterface(string name, string uri, AvDeviceWsClientHost* host, bool autoConnect)
       : WsClientInterface(name, uri, host, autoConnect) {}
@@ -115,13 +115,13 @@ public:
   /// @param name - Name of data object
   /// @param uri - Websocket connection endpoint
   /// @return - pointer too new AvdClientInterface
-  AvdClientInterface *Add(string name, const char* uri, bool autoConnect = true)
+  AvdClientInterface* Add(string name, const char* uri, bool autoConnect = true)
   {
     interfaces[name] = new AvdClientInterface(name, uri, this, autoConnect);
 
     ObjMsgData::RegisterClass(origin_id, name, ObjMsgDataJson::Create);
 
-    return (AvdClientInterface *)interfaces[name];
+    return (AvdClientInterface*)interfaces[name];
   }
 
 };

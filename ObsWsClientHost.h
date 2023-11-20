@@ -20,6 +20,8 @@
 
 #define RPCVERSION "1"
 #define REQUEST_ID_SEED "ThisRequest"
+#define NO_DATA_TIMEOUT_SEC 5
+#define CONNECT_TIMEOUT_SEC 5
 
 enum ObsOpcodes {
   Hello = 0,
@@ -57,9 +59,8 @@ public:
     {
 
       websocket_cfg.uri = uri.c_str();
-      websocket_cfg.network_timeout_ms = 2000;
-      websocket_cfg.reconnect_timeout_ms = 4000;
-      websocket_cfg.disable_auto_reconnect = true;
+      websocket_cfg.network_timeout_ms = 1000;
+      websocket_cfg.reconnect_timeout_ms = 3000;
 
       requestCount = 0;
       identified = false;
@@ -80,14 +81,12 @@ public:
 
       esp_websocket_client_start(client);
 
-      if (xSemaphoreTake(connect_sema, (websocket_cfg.reconnect_timeout_ms - 200) / portTICK_PERIOD_MS)) {
+      if (xSemaphoreTake(connect_sema, CONNECT_TIMEOUT_SEC * 1000 / portTICK_PERIOD_MS)) {
         Identify();
-        ESP_LOGI(host->TAG.c_str(), "Open SUCCESS");
         return true;
       }
       else {
         Close();
-        ESP_LOGE(host->TAG.c_str(), "Open FAILED");
         return false;
       }
     }
@@ -212,7 +211,6 @@ public:
                 break;
               case Identified:
                 ESP_LOGI(ws->host->TAG.c_str(), "Identified op.");
-                ws->identified = true;
                 break;
               case Reidentify:
                 ESP_LOGI(ws->host->TAG.c_str(), "Reidentify op.");
@@ -239,7 +237,7 @@ public:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatchResponse op.");
                 break;
               }
-              ESP_LOGI(ws->host->TAG.c_str(), "Received JSON=%s", cJSON_Print(root));
+              ESP_LOGD(ws->host->TAG.c_str(), "Received JSON=%s", cJSON_Print(root));
               cJSON_Delete(root);
             }
             else {
