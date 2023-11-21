@@ -213,6 +213,7 @@ public:
                 break;
               case Identified:
                 ESP_LOGD(ws->host->TAG.c_str(), "Identified op.");
+                ws->identified  = true;
                 break;
               case Reidentify:
                 ESP_LOGE(ws->host->TAG.c_str(), "Unexpected Reidentify op.");
