@@ -64,7 +64,7 @@ class AvdClientInterface : public ObsWsClientHost::WsClientInterface
   /// @param value - 0 / 1 == Off / On
   /// @return ESP_OK or error value
   int Mute(const char* device, const char* chan, const char* value) {
-    return MixerChannelValueRequest("Zoom", device, chan, value);
+      return MixerChannelValueRequest("Mute", device, chan, value);
   }
 
   /// @brief Change volume setting of 'chan on 'device' to 'value'
