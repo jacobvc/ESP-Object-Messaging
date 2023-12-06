@@ -63,7 +63,7 @@ class AvdClientInterface : public ObsWsClientHost::WsClientInterface
   /// @param chan - Device channel
   /// @param value - 0 / 1 == Off / On
   /// @return ESP_OK or error value
-  int Mute(const char* device, const char* chan, const char* value) {
+  int Mute(const char* device, const char* chan, const int value) {
       return MixerChannelValueRequest("Mute", device, chan, value);
   }
 
@@ -72,15 +72,15 @@ class AvdClientInterface : public ObsWsClientHost::WsClientInterface
   /// @param chan - Device channel
   /// @param value - New value
   /// @return ESP_OK or error value
-  int VolumeSetting(const char* device, const char* chan, const char* value) {
+  int VolumeSetting(const char* device, const char* chan,int value) {
     return MixerChannelValueRequest("VolumeSetting", device, chan, value);
   }
 protected:
-  int MixerChannelValueRequest(const char* request, const char* device, const char* chan, const char* value) {
+  int MixerChannelValueRequest(const char* request, const char* device, const char* chan, int value) {
     cJSON* reqData = cJSON_CreateObject();
     cJSON_AddStringToObject(reqData, "mixername", device);
     cJSON_AddStringToObject(reqData, "channelname", chan);
-    cJSON_AddStringToObject(reqData, "value", value);
+    cJSON_AddNumberToObject(reqData, "value", value);
     return Request(request, reqData);
   }
   int CameraDirectionAmountRequest(const char* request, const char* device, const char* dir, int amount) {

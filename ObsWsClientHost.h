@@ -219,25 +219,26 @@ public:
                 ESP_LOGE(ws->host->TAG.c_str(), "Unexpected Reidentify op.");
                 break;
               case Event:
-              {
-                ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
-                ObjMsgDataRef data = ObjMsgDataJson::Create(
-                  ws->host->origin_id, ws->name.c_str(), root);
-                ws->host->Produce(data);
+                {
+                  ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
+                  ObjMsgDataRef data = ObjMsgDataJson::Create(
+                    ws->host->origin_id, ws->name.c_str(), root);
+                  ws->host->Produce(data);
+                }
+                // Return so JSON does not get deleted. It is now owned by data
                 return;
-              }
               case ObsOpcodes::Request:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Request op.");
                 break;
               case RequestResponse:
-              {
-                ESP_LOGI(ws->host->TAG.c_str(), "RequestResponse op.");
-                ObjMsgDataRef data = ObjMsgDataJson::Create(
-                  ws->host->origin_id, ws->name.c_str(), root);
-                ws->host->Produce(data);
+                {
+                  ESP_LOGI(ws->host->TAG.c_str(), "RequestResponse op.");
+                  ObjMsgDataRef data = ObjMsgDataJson::Create(
+                    ws->host->origin_id, ws->name.c_str(), root);
+                  ws->host->Produce(data);
+                }
                 // Return so JSON does not get deleted. It is now owned by data
                 return;
-              }
               case RequestBatch:
                 ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatch op.");
                 break;
@@ -348,7 +349,7 @@ public:
         cJSON* jValue = cJSON_GetObjectItem(jData, "eventType");
         if (jValue) {
           eventType = cJSON_GetStringValue(jValue);
-          return jData;
+          return cJSON_GetObjectItem(jData, "eventData");;
         }
       }
     }

@@ -143,7 +143,11 @@ public:
     // Create message object to send shared_ptr data
     ObjMessage *msg = new ObjMessage(dataRef);
     // and send it
-    return xQueueSend(message_queue, &msg, 0) ? true:false;
+    bool result = xQueueSend(message_queue, &msg, 0) ? true:false;
+    if (!result) {
+      delete msg;
+    }
+    return result;
   }
 
   /// Add 'fwd' to the forwards list
