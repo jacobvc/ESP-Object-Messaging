@@ -7,6 +7,21 @@
 #include "ObjMsg.h"
 #include <list>
 
+/*
+ * Built in messages:
+ *
+ * Connection Report (produced upon successful IP connect)
+ *  __WS_MY_IP__ <IP Address>
+ * 
+ * Smart config provisioning
+ *   __WS_SMARTCONFIG__ begin
+ *   __WS_SMARTCONFIG__ end
+ * AP Scanning:
+ *  __WS_APSCAN__ begin
+ *  __WS_AP__ <access point> (for each detected)
+ *  __WS_APSCAN__ end
+ */
+
 // LED Patterns; 16 member sequence of LED On/Off bits, applied at 250ms interval
 #define LED_PATTERN_CONNECTING 0x3333    // 1 sec beat
 #define LED_PATTERN_PROVISIONING 0x55ee // 2 long, 4 short      0x5555  // 1/2 sec beat
@@ -39,6 +54,8 @@ public:
   bool Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), bool ws);
   bool Start();
   bool Consume(ObjMsgData *data);
+  bool IsConnected();
+  void SetConnected(bool connected);
 
   /// Scan for wifi access points
   void WifiScan(void);
@@ -49,12 +66,15 @@ protected:
   TaskHandle_t blinkTaskHandle;
   gpio_num_t led;
   int ledPattern;
+  bool isConnected;
 
   std::list<httpd_uri_t> uris;
 
   // Websocket
   static void WebSockAsyncBroadcast(void *arg);
   static esp_err_t WebSockMsgHandler(httpd_req_t *req);
+  void SmartConfigStart();
+
 
   // http
   httpd_handle_t StartWebserver(void);

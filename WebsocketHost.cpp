@@ -52,6 +52,7 @@ bool WebsocketHost::Add(const char *path, esp_err_t (*fn)(httpd_req_t *req), boo
 
 bool WebsocketHost::Start()
 {
+  isConnected = false;
   /* Initialize NVS partition */
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -111,6 +112,15 @@ bool WebsocketHost::Start()
     gpio_set_level(led, 0);
   }
   return true;
+}
+
+bool WebsocketHost::IsConnected()
+{
+  return isConnected;
+}
+void WebsocketHost::SetConnected(bool connected)
+{
+  isConnected = connected;
 }
 
 bool WebsocketHost::Consume(ObjMsgData *data)
@@ -249,6 +259,9 @@ void WebsocketHost::StopWebserver()
   server = NULL;
 }
 
+#define RECONNECT_TRIES 5
+int reconnectCounter = 0;
+
 void WebsocketHost::IpConnectHandler(void *arg, esp_event_base_t event_base,
                                      int32_t event_id, void *event_data)
 {
@@ -259,7 +272,10 @@ void WebsocketHost::IpConnectHandler(void *arg, esp_event_base_t event_base,
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(host->TAG.c_str(), "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(buffer, IPSTR, IP2STR(&event->ip_info.ip));
-    host->Produce(ObjMsgDataString::Create(host->origin_id, "__my_ip__", buffer));
+    host->Produce(ObjMsgDataString::Create(host->origin_id, "__WS_MY_IP__", buffer));
+
+    host->SetConnected(true);
+    reconnectCounter = 0;
 
     if (server == NULL)
     {
@@ -288,6 +304,8 @@ void WebsocketHost::WifiEventHandler(void *arg, esp_event_base_t event_base,
   {
   case WIFI_EVENT_STA_START:
   {
+    host->SetConnected(false);
+
     /* Get Wi-Fi Station configuration */
     bool configured = false;
     wifi_config_t wifi_cfg;
@@ -312,20 +330,26 @@ void WebsocketHost::WifiEventHandler(void *arg, esp_event_base_t event_base,
     }
     else
     {
-      host->ledPattern = LED_PATTERN_PROVISIONING;
-      xTaskCreate(SmartconfigTask, "smartconfig task", 4096, host, 3, NULL);
+      host->SmartConfigStart();
     }
     break;
   }
   case WIFI_EVENT_STA_DISCONNECTED:
-    ESP_LOGW(host->TAG.c_str(), "Disconnected. Connecting to the AP again...");
-    xEventGroupClearBits(host->wifi_event_group, CONNECTED_BIT);
-    if (server)
-    {
-      ESP_LOGW(host->TAG.c_str(), "Stopping webserver");
-      host->StopWebserver();
+    host->SetConnected(false);
+    if (++reconnectCounter >= RECONNECT_TRIES) {
+      reconnectCounter = 0;
+      host->SmartConfigStart();
     }
-    esp_wifi_connect();
+    else {
+      ESP_LOGW(host->TAG.c_str(), "Disconnected, trying to reconnect...");
+      xEventGroupClearBits(host->wifi_event_group, CONNECTED_BIT);
+      if (server)
+      {
+        ESP_LOGW(host->TAG.c_str(), "Stopping webserver");
+        host->StopWebserver();
+      }
+      esp_wifi_connect();
+    }
     break;
   }
 }
@@ -336,6 +360,12 @@ void WebsocketHost::WifiEventHandler(void *arg, esp_event_base_t event_base,
  *     |___/_|_|_\__,_|_|  \__\__\___/_||_|_| |_\__, |
  *                                              |___/
  */
+void WebsocketHost::SmartConfigStart() {
+    ledPattern = LED_PATTERN_PROVISIONING;
+    xTaskCreate(SmartconfigTask, "smartconfig task", 4096, this, 3, NULL);
+    Produce(ObjMsgDataString::Create(origin_id, "__WS_SMARTCONFIG__", "begin"));
+}
+
 void WebsocketHost::SmartconfigTask(void *arg)
 {
   WebsocketHost *host = (WebsocketHost *)arg;
@@ -354,6 +384,7 @@ void WebsocketHost::SmartconfigTask(void *arg)
     {
       ESP_LOGI(host->TAG.c_str(), "smartconfig over");
       esp_smartconfig_stop();
+      host->Produce(ObjMsgDataString::Create(host->origin_id, "__WS_SMARTCONFIG__", "end"));
       vTaskDelete(NULL);
     }
   }
@@ -373,7 +404,6 @@ void WebsocketHost::ScEventHandler(void *arg, esp_event_base_t event_base,
   }
   else if (event_id == SC_EVENT_GOT_SSID_PSWD)
   {
-    ESP_LOGI(host->TAG.c_str(), "Got SSID and password");
     host->ledPattern = LED_PATTERN_GOT_PW;
 
     smartconfig_event_got_ssid_pswd_t *evt = (smartconfig_event_got_ssid_pswd_t *)event_data;
@@ -393,8 +423,8 @@ void WebsocketHost::ScEventHandler(void *arg, esp_event_base_t event_base,
 
     memcpy(ssid, evt->ssid, sizeof(evt->ssid));
     memcpy(password, evt->password, sizeof(evt->password));
-    ESP_LOGI(host->TAG.c_str(), "SSID:%s", ssid);
-    ESP_LOGI(host->TAG.c_str(), "PASSWORD:%s", password);
+    ESP_LOGI(host->TAG.c_str(), "Smart config got SSID:%s, PASSWORD:%s", ssid, password);
+
     if (evt->type == SC_TYPE_ESPTOUCH_V2)
     {
       ESP_ERROR_CHECK(esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)));
@@ -439,16 +469,16 @@ void WebsocketHost::WifiScan(void)
   ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
   ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
   ESP_LOGI(TAG.c_str(), "Total APs scanned = %u", ap_count);
-  Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "begin"));
+  Produce(ObjMsgDataString::Create(origin_id, "__WS_APSCAN__", "begin"));
 
   for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++)
   {
-    Produce(ObjMsgDataString::Create(origin_id, "__AP__", (const char *)ap_info[i].ssid));
+    Produce(ObjMsgDataString::Create(origin_id, "__WS_AP__", (const char *)ap_info[i].ssid));
     ESP_LOGI(TAG.c_str(), "SSID \t\t%s", ap_info[i].ssid);
     ESP_LOGI(TAG.c_str(), "RSSI \t\t%d", ap_info[i].rssi);
     ESP_LOGI(TAG.c_str(), "Channel \t%d", ap_info[i].primary);
   }
-  Produce(ObjMsgDataString::Create(origin_id, "__APSCAN__", "end"));
+  Produce(ObjMsgDataString::Create(origin_id, "__WS_APSCAN__", "end"));
 }
 
 void WebsocketHost::BlinkTask(void *arg)

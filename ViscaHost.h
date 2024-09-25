@@ -46,7 +46,7 @@ public:
     }
     VISCAInterface_t intf;
     VISCACamera_t camera;
-    
+
     bool Open()
     {
       int camera_num;
@@ -127,11 +127,14 @@ public:
     // joystick data is the object when id is ORIGIN_JOYSTICK_VIEW
     // AND encoding is JOYSTICK_DATA_STRUCT_ENC
     Joystick3AxisData* sample = static_cast<Joystick3AxisData*>(data);
-    sample->GetRawValue(jd);
-
-    xQueueSend(visca_queue, &jd, 0);
-
-    return true;
+    if (sample != NULL) {
+      sample->GetRawValue(jd);
+      xQueueSend(visca_queue, &jd, 0);
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
   bool Select(string device) {

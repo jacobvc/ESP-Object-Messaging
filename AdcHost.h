@@ -46,6 +46,7 @@ public:
   {
     vRefX2 = reference * 2;
     rRef = raw;
+    value = reference;
   }
 
   /// Calculate the scaled value for 'rawAdc' measurement.
