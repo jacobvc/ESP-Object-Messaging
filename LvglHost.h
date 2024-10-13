@@ -14,12 +14,16 @@
 #include <unordered_map>
 #include "ObjMsg.h"
 #include "stdio.h"
+
 // typedef ObjMsgDataInt ObjMsgServoData;
 typedef bool (*lvglVirtualComsumer)(LvglHost *host, ObjMsgData *data);
 
 /// @brief An ObjMsgHost object, hosting Lvgl Produce / Consume
 class LvglHost : public ObjMsgHost
 {
+  bool (*lock)(uint32_t timeout_ms);
+  void (*unlock)(void);
+
   typedef struct
   {
     const char *name;
@@ -32,8 +36,8 @@ public:
   /// Constructor, specifying transport object and origin 
   /// @param transport: Transport object
   /// @param origin: Origin ID for this host
-  LvglHost(ObjMsgTransport *transport, uint16_t origin)
-      : ObjMsgHost(transport, "LVGL", origin)
+  LvglHost(ObjMsgTransport *transport, uint16_t origin, bool (*lock)(uint32_t timeout_ms), void (*unlock)(void))
+      : ObjMsgHost(transport, "LVGL", origin), lock(lock), unlock(unlock)
   {
   }
 
@@ -90,9 +94,18 @@ public:
 
   bool Consume(ObjMsgData *msg)
   {
+    lock(0);
+    bool result = _consume(msg);
+    unlock();
+    return result;
+  }
+
+  bool _consume(ObjMsgData *msg)
+  {
     string strVal;
     int intVal;
     lvglVirtualComsumer vrt = GetVirtualConsumer(msg->GetName());
+
     if (vrt)
     {
       return vrt(this, msg);
@@ -255,6 +268,7 @@ protected:
     {
       if (lv_event_get_code(event) == ctx->eventCode)
       {
+        host->lock(0);
         switch (ctx->type)
         {
         case ARC_CT:
@@ -337,6 +351,7 @@ protected:
           ESP_LOGE(host->TAG.c_str(), "produce type (%d) NOT IMPLEMENTED", ctx->type);
           break;
         }
+        host->unlock();
       }
       else
       {

@@ -185,6 +185,7 @@ public:
         if (data->payload_len == data->payload_offset + data->data_len) {
           // Message complete
           if (data->payload_offset != 0) {
+            ESP_LOGI(ws->host->TAG.c_str(), "Appending %d to assembly");
             ws->assembly.append(data->data_ptr, data->data_len);
           }
           switch (data->op_code) {
@@ -196,61 +197,62 @@ public:
             cJSON* root;
             if (ws->assembly.length() > 0) {
               root = cJSON_Parse(ws->assembly.c_str());
+              ESP_LOGI(ws->host->TAG.c_str(), "Clearing assembly");
+              ws->assembly = ""; // Done with assembly contents
             }
             else {
               root = cJSON_ParseWithLength(data->data_ptr, data->data_len);
             }
-            ws->assembly = ""; // Done with assmebly contents
             if (root) {
               cJSON* jOp = cJSON_GetObjectItem(root, "op");
               int op = cJSON_GetNumberValue(jOp);
               switch (op) {
               case Hello:
-                ESP_LOGD(ws->host->TAG.c_str(), "Hello op.");
+                ESP_LOGD(ws->host->TAG.c_str(), "Event Data:Hello op.");
                 break;
               case ObsOpcodes::Identify:
-                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Identify op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Event Data:UNEXPECTED Identify op.");
                 break;
               case Identified:
-                ESP_LOGD(ws->host->TAG.c_str(), "Identified op.");
-                ws->identified  = true;
+                ESP_LOGD(ws->host->TAG.c_str(), "Event Data:Identified op.");
+                ws->identified = true;
                 break;
               case Reidentify:
-                ESP_LOGE(ws->host->TAG.c_str(), "Unexpected Reidentify op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Event Data:Unexpected Reidentify op.");
                 break;
               case Event:
-                {
-                  ESP_LOGI(ws->host->TAG.c_str(), "Event op.");
-                  ObjMsgDataRef data = ObjMsgDataJson::Create(
-                    ws->host->origin_id, ws->name.c_str(), root);
-                  ws->host->Produce(data);
-                }
-                // Return so JSON does not get deleted. It is now owned by data
-                return;
+              {
+                ESP_LOGI(ws->host->TAG.c_str(), "Event Data:Event op (%d bytes)", data->payload_len);
+                ObjMsgDataRef data = ObjMsgDataJson::Create(
+                  ws->host->origin_id, ws->name.c_str(), root);
+                ws->host->Produce(data);
+              }
+              // Return so JSON does not get deleted. It is now owned by data
+              return;
               case ObsOpcodes::Request:
-                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED Request op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Event Data:UNEXPECTED Request op.");
                 break;
               case RequestResponse:
-                {
-                  ESP_LOGI(ws->host->TAG.c_str(), "RequestResponse op.");
-                  ObjMsgDataRef data = ObjMsgDataJson::Create(
-                    ws->host->origin_id, ws->name.c_str(), root);
-                  ws->host->Produce(data);
-                }
-                // Return so JSON does not get deleted. It is now owned by data
-                return;
+              {
+                ESP_LOGI(ws->host->TAG.c_str(), "Event Data:Request-Response op.");
+                ObjMsgDataRef data = ObjMsgDataJson::Create(
+                  ws->host->origin_id, ws->name.c_str(), root);
+                ws->host->Produce(data);
+              }
+              // Return so JSON does not get deleted. It is now owned by data
+              return;
               case RequestBatch:
-                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatch op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Event Data:UNEXPECTED RequestBatch op.");
                 break;
               case RequestBatchResponse:
-                ESP_LOGE(ws->host->TAG.c_str(), "UNEXPECTED RequestBatchResponse op.");
+                ESP_LOGE(ws->host->TAG.c_str(), "Event Data:UNEXPECTED RequestBatchResponse op.");
                 break;
               }
               ESP_LOGI(ws->host->TAG.c_str(), "JSON=%s", cJSON_Print(root));
               cJSON_Delete(root);
             }
             else {
-              ESP_LOGE(ws->host->TAG.c_str(), "Received NON-JSON=%.*s", data->data_len, (char*)data->data_ptr);
+              ESP_LOGE(ws->host->TAG.c_str(), "Event Data:Received NON-JSON=%.*s", data->data_len, (char*)data->data_ptr);
             }
           }
           break;
