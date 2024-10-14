@@ -1,5 +1,6 @@
 #include "ObjMsg.h"
 
+#include "bsp/esp-lcd-3-5-bsp.h"
 #include "GpioHost.h"
 #include "JoystickHost.h"
 #include "ServoHost.h"
@@ -82,7 +83,7 @@ GpioHost gpio(&transport, ORIGIN_GPIO);
 
 JoystickHost joysticks(&adc, &gpio, &transport, ORIGIN_JOYSTICK, SAMPLE_INTERVAL_MS);
 ServoHost servos(&transport, ORIGIN_SERVO);
-LvglHost lvgl(&transport, ORIGIN_LVGL);
+LvglHost lvgl(&transport, ORIGIN_LVGL, bsp_lcd_lock, bsp_lcd_unlock);
 WebsocketHost ws(&transport, ORIGIN_WEBSOCKET, WEBSOCK_LED);
 
 //

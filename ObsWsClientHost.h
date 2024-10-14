@@ -150,6 +150,7 @@ public:
 
       esp_err_t result = Send(msg);
       cJSON_Delete(msg);
+      //DON'T do this. It is deleted as part of 'msg': cJSON_Delete(d); 
       return result;
     }
 
@@ -185,7 +186,7 @@ public:
         if (data->payload_len == data->payload_offset + data->data_len) {
           // Message complete
           if (data->payload_offset != 0) {
-            ESP_LOGI(ws->host->TAG.c_str(), "Appending %d to assembly");
+            ESP_LOGI(ws->host->TAG.c_str(), "Appending %d to assembly", data->data_len);
             ws->assembly.append(data->data_ptr, data->data_len);
           }
           switch (data->op_code) {
