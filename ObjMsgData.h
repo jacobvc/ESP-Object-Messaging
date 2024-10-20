@@ -520,12 +520,12 @@ public:
     : ObjMsgDataT<cJSON*>(origin, name)
   {
     this->value = value;
-    // ESP_LOGI(TAG.c_str(), "ObjMsgDataJson(%u, %s, %u) constructed", origin, name, value);
+    //ESP_LOGW(TAG.c_str(), "ObjMsgDataJson(%u, %s, %p) constructed", origin, name, value);
   }
   /// Destructor
   ~ObjMsgDataJson()
   {
-    // ESP_LOGI(TAG.c_str(), "ObjMsgDataJson destructed");
+    //ESP_LOGW(TAG.c_str(), "ObjMsgDataJson %p destructed", value);
     if (value) {
       cJSON_Delete(value);
     }

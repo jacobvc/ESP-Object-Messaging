@@ -127,9 +127,11 @@ bool WebsocketHost::Consume(ObjMsgData *data)
 {
   if (server)
   {
+    
     string str;
     data->Serialize(str);
     const char *json = str.c_str();
+    // ESP_LOGW("Websocket", "INVOKE async_broadcast");
     int err = httpd_queue_work(server, WebSockAsyncBroadcast, strdup(json));
     if (err != ESP_OK)
     {
@@ -162,7 +164,7 @@ void WebsocketHost::WebSockAsyncBroadcast(void *arg)
   ws_pkt.len = strlen((char *)arg);
   ws_pkt.final = true;
 
-  // ESP_LOGI(TAG.c_str(), "async_broadcast(%s)", (char *)arg);
+  // ESP_LOGW("Websocket", "async_broadcast(%p:%d bytes) mem:%d", arg, strlen((char *)arg), esp_get_free_heap_size());
 
   static size_t max_clients = CONFIG_LWIP_MAX_LISTENING_TCP;
   size_t fds = max_clients;
@@ -171,7 +173,8 @@ void WebsocketHost::WebSockAsyncBroadcast(void *arg)
   esp_err_t ret = httpd_get_client_list(server, &fds, client_fds);
   if (ret != ESP_OK)
   {
-    return;
+   free(arg);
+   return;
   }
 
   for (int i = 0; i < fds; i++)
@@ -188,6 +191,7 @@ void WebsocketHost::WebSockAsyncBroadcast(void *arg)
   }
 
   free(arg);
+  // ESP_LOGW("Websocket", "async_broadcast free(%p) mem:%d", arg, esp_get_free_heap_size());
 }
 
 //
@@ -370,6 +374,7 @@ void WebsocketHost::SmartconfigTask(void *arg)
 {
   WebsocketHost *host = (WebsocketHost *)arg;
   EventBits_t uxBits;
+  esp_smartconfig_stop();
   ESP_ERROR_CHECK(esp_smartconfig_set_type(SC_TYPE_ESPTOUCH));
   smartconfig_start_config_t cfg = SMARTCONFIG_START_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_smartconfig_start(&cfg));

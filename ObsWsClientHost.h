@@ -223,7 +223,7 @@ public:
                 break;
               case Event:
               {
-                ESP_LOGI(ws->host->TAG.c_str(), "Event Data:Event op (%d bytes)", data->payload_len);
+                ESP_LOGI(ws->host->TAG.c_str(), "Event Data:Event op (%d bytes mem:%d)", data->payload_len,  esp_get_free_heap_size());
                 ObjMsgDataRef data = ObjMsgDataJson::Create(
                   ws->host->origin_id, ws->name.c_str(), root);
                 ws->host->Produce(data);

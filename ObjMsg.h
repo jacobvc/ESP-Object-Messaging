@@ -145,7 +145,8 @@ public:
     // and send it
     bool result = xQueueSend(message_queue, &msg, 0) ? true:false;
     if (!result) {
-      delete msg;
+      ESP_LOGW("TRANSPORT", "Message Q Overflow");
+     delete msg;
     }
     return result;
   }
@@ -153,21 +154,37 @@ public:
   /// Add 'fwd' to the forwards list
   /// @param fwd: host to receive forwards
   /// @return true if successful
-  bool AddForward(ObjMsgHost *fwd)
+  bool AddForward(int fromOrigin, ObjMsgHost *fwd)
   {
-    forwards.push_back(fwd);
+    unordered_map<int, list<ObjMsgHost *>>::iterator found = forwards.find(fromOrigin);
+    if (found != forwards.end())
+    {
+      found->second.push_back(fwd);
+    }
+    else
+    {
+      list<ObjMsgHost *> fwds;
+      fwds.push_back(fwd);
+      forwards[fromOrigin] = fwds;
+    }
     return true;
   }
 
-  /// Forward 'data' to registered consumers (if they are not the origin)
+  /// Forward 'data' to consumers of its origin (if they are not the origin)
   /// @param data: data to forward
   void Forward(ObjMsgData *data)
   {
-    for (list<ObjMsgHost *>::iterator it = forwards.begin(); it != forwards.end(); ++it)
+    unordered_map<int, list<ObjMsgHost *>>::iterator found = forwards.find(data->GetOrigin());
+    if (found != forwards.end())
     {
-      if (!data->IsFrom((*it)->GetOrigin()))
+      for (list<ObjMsgHost *>::iterator fit = found->second.begin(); fit != found->second.end(); ++fit)
       {
-        (*it)->Consume(data);
+        if (!data->IsFrom((*fit)->GetOrigin()))
+        {
+          (*fit)->Consume(data);
+        }
+        else {
+        }
       }
     }
   }
@@ -193,5 +210,5 @@ public:
   }
 
 protected:
-  list<ObjMsgHost *> forwards;
+  unordered_map<int, list<ObjMsgHost *>> forwards;
 };
