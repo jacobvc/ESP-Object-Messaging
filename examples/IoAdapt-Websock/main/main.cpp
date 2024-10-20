@@ -158,7 +158,9 @@ void MessagingInit()
   // WARNING - (for now) do this last. It will not return until WiFi starts
   ws.Start();
   // Have transport forward messages to ws
-  transport.AddForward(&ws);
+  transport.AddForward(ORIGIN_JOYSTICK, &ws);
+  transport.AddForward(ORIGIN_ADC, &ws);
+  transport.AddForward(ORIGIN_SERVO, &ws);
 }
 
 extern "C" void app_main(void)

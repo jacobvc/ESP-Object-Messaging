@@ -191,7 +191,8 @@ void MessagingInit()
   lvgl.AddVirtualConsumer(ZOOM_JOY_NAME, LvglJoystickComsumer);
   lvgl.Start();
   // Have transport forward messages to lvgl
-  transport.AddForward(&lvgl);
+  transport.AddForward(ORIGIN_JOYSTICK, &lvgl);
+transport.AddForward(ORIGIN_ADC, &lvgl);
 
   xTaskCreate(MessageTask, "MessageTask",
               CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE + 1024, NULL,
@@ -203,5 +204,7 @@ void MessagingInit()
   // WARNING - (for now) do this last. It will not return until WiFi starts
   ws.Start();
   // Have transport forward messages to ws
-  transport.AddForward(&ws);
+  transport.AddForward(ORIGIN_JOYSTICK, &ws);
+  transport.AddForward(ORIGIN_ADC, &ws);
+  
 }
