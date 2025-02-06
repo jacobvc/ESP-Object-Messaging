@@ -22,6 +22,8 @@
 #ifndef __LIBVISCA_H__
 #define __LIBVISCA_H__
 
+#define ESP_IDF_BUILD
+
 #if defined(_WIN32)||defined(WIN32)||defined(__WIN32__)||defined(_MSC_VER)
 #  ifdef STATIC_LIB
 #    define VISCA_API
@@ -472,7 +474,7 @@ typedef struct _VISCA_interface
 #include <stdint.h>
 #include <unistd.h>
 
-#ifdef CONFIG_IDF_TARGET_ESP32
+#ifdef ESP_IDF_BUILD
 #include "freertos/FreeRTOS.h"
 #include "driver/uart.h"
 
@@ -493,7 +495,7 @@ typedef struct _VISCA_interface
    */
   typedef struct _VISCA_interface
   {
-  #ifdef CONFIG_IDF_TARGET_ESP32
+  #ifdef ESP_IDF_BUILD
     // Interface type and binding
     enum Interface_type if_type;
     int (*write_bytes)(struct _VISCA_interface* device, const void* src, size_t size);
@@ -592,7 +594,7 @@ _VISCA_get_packet(VISCAInterface_t *iface);
 VISCA_API uint32_t
 _VISCA_get_byte(VISCAInterface_t *iface, unsigned char *byte);
 
-#ifdef CONFIG_IDF_TARGET_ESP32
+#ifdef ESP_IDF_BUILD
 VISCA_API uint32_t
 VISCA_configure_serial(VISCAInterface_t* device, uart_port_t port, int rxpin, int txpin);
 
